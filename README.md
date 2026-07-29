@@ -15,6 +15,8 @@ Pe lângă simulatorul clasic de foto, aplicația include:
 - **Presetări Video / Nuntă** — combinații reale de cameră + obiectiv pentru Sony (A7 III/IV, A7S III, FX3, FX30, A6400), Panasonic (GH5, GH6, S5, S1H) și Canon (R6, R6 II, C70), cu note despre crop-ul video specific fiecărei camere.
 - **Simulare Rack Focus** — setezi o distanță de start și una finală, apeși Play și vezi live cum se schimbă profunzimea de câmp în timpul unei treceri de focus (tranziție cu ease-in-out, ca la un focus pull real).
 - **Mod Nuntă (setează și uită)** — un switch care traduce distanța apropiată/îndepărtată calculată într-un sfat practic în limbaj simplu: "la acest f-stop și distanță, poți filma liber între X și Y metri, fără să mai atingi focusul".
+- **Partajare prin link** — orice combinație de cameră/obiectiv/distanță se salvează automat în URL. Butonul „Copiază Link" din subsol copiază adresa curentă, gata de trimis unui student cu un setup exact.
+- **Tooltip-uri educaționale** — un mic „?" lângă fiecare control (Unități, Distanță, Distanță Focală, Diafragmă, Senzor, Subiect) explică pe scurt de ce contează parametrul respectiv.
 
 ## Cum să pornești proiectul
 

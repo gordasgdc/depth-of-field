@@ -25,10 +25,11 @@ import {
   FormLabel,
   useColorMode,
   useColorModeValue,
+  useToast,
   Tooltip,
 } from "@chakra-ui/react";
 import { TbRuler, TbAperture, TbZoomIn, TbUser } from "react-icons/tb";
-import { FiGithub, FiCamera, FiSun, FiMoon, FiPlay, FiHeart } from "react-icons/fi";
+import { FiGithub, FiCamera, FiSun, FiMoon, FiPlay, FiHeart, FiLink } from "react-icons/fi";
 import { toImperial, toMetric } from "./utils/units";
 import { buildNativeSelectStyles } from "./selectStyles";
 
@@ -237,21 +238,81 @@ function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
 
+// Mic indicator "?" cu tooltip educațional — explică pe scurt "de ce"
+// contează fiecare control, pentru studenți la început de drum.
+function InfoTip({ label }: { label: string }) {
+  return (
+    <Tooltip label={label} hasArrow placement="top">
+      <Box
+        as="span"
+        display="inline-flex"
+        alignItems="center"
+        justifyContent="center"
+        boxSize="14px"
+        borderRadius="full"
+        border="1px solid currentColor"
+        fontSize="10px"
+        fontWeight="bold"
+        opacity={0.6}
+        cursor="help"
+        ml={1}
+        flexShrink={0}
+      >
+        ?
+      </Box>
+    </Tooltip>
+  );
+}
+
+// Citește un parametru din URL (folosit pentru partajarea unui setup exact
+// printr-un link — util pentru profesori care vor să trimită elevilor
+// o configurație precisă de cameră/obiectiv/distanță).
+function getInitialParam(key: string): string | null {
+  if (typeof window === "undefined") return null;
+  return new URLSearchParams(window.location.search).get(key);
+}
+
 function App() {
-  const [distanceToSubjectInInches, setDistanceToSubjectInInches] =
-    useState(72);
-  const [focalLengthInMillimeters, setFocalLengthInMillimeters] = useState(50);
-  const [aperture, setAperture] = useState(1.8);
-  const [subject, setSubject] = useState("Persoană");
-  const [system, setSystem] = useState<(typeof SYSTEMS)[number]>("Imperial");
-  const [sensor, setSensor] = useState("35mm (cadru complet)");
-    const [customSensorWidth, setCustomSensorWidth] = useState(36);
-  const [customSensorHeight, setCustomSensorHeight] = useState(24);
+  const [distanceToSubjectInInches, setDistanceToSubjectInInches] = useState(
+    () => {
+      const v = getInitialParam("dist");
+      return v ? Number(v) : 72;
+    }
+  );
+  const [focalLengthInMillimeters, setFocalLengthInMillimeters] = useState(
+    () => {
+      const v = getInitialParam("focal");
+      return v ? Number(v) : 50;
+    }
+  );
+  const [aperture, setAperture] = useState(() => {
+    const v = getInitialParam("f");
+    return v ? Number(v) : 1.8;
+  });
+  const [subject, setSubject] = useState(
+    () => getInitialParam("subject") || "Persoană"
+  );
+  const [system, setSystem] = useState<(typeof SYSTEMS)[number]>(() => {
+    const v = getInitialParam("system");
+    return v === "Metric" ? "Metric" : "Imperial";
+  });
+  const [sensor, setSensor] = useState(
+    () => getInitialParam("sensor") || "35mm (cadru complet)"
+  );
+  const [customSensorWidth, setCustomSensorWidth] = useState(() => {
+    const v = getInitialParam("sw");
+    return v ? Number(v) : 36;
+  });
+  const [customSensorHeight, setCustomSensorHeight] = useState(() => {
+    const v = getInitialParam("sh");
+    return v ? Number(v) : 24;
+  });
   const [weddingMode, setWeddingMode] = useState(false);
   const [rackStartInInches, setRackStartInInches] = useState(48);
   const [rackEndInInches, setRackEndInInches] = useState(120);
   const [isRacking, setIsRacking] = useState(false);
   const rackAnimationRef = useRef<number | null>(null);
+  const toast = useToast();
 
   const { colorMode, toggleColorMode } = useColorMode();
 
@@ -408,6 +469,45 @@ const cropFactor = isCustomSensor
       }
     };
   }, []);
+
+  // ── Sincronizare setup curent cu URL-ul (pentru partajare prin link) ──
+  useEffect(() => {
+    const params = new URLSearchParams();
+    params.set("dist", String(Math.round(distanceToSubjectInInches)));
+    params.set("focal", String(focalLengthInMillimeters));
+    params.set("f", String(aperture));
+    params.set("subject", subject);
+    params.set("system", system);
+    params.set("sensor", sensor);
+    if (sensor === "Custom") {
+      params.set("sw", String(customSensorWidth));
+      params.set("sh", String(customSensorHeight));
+    }
+    const newUrl = `${window.location.pathname}?${params.toString()}`;
+    window.history.replaceState(null, "", newUrl);
+  }, [
+    distanceToSubjectInInches,
+    focalLengthInMillimeters,
+    aperture,
+    subject,
+    system,
+    sensor,
+    customSensorWidth,
+    customSensorHeight,
+  ]);
+
+  function copyShareLink() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      toast({
+        title: "Link copiat!",
+        description: "Trimite-l cuiva ca să vadă exact acest setup.",
+        status: "success",
+        duration: 2500,
+        isClosable: true,
+        position: "top",
+      });
+    });
+  }
 
   return (
     <>
@@ -604,6 +704,7 @@ const cropFactor = isCustomSensor
             <Flex w="20%" justify="flex-end" align="center" gap={1.5}>
               <Icon as={TbRuler} boxSize={4} color={mutedText} />
               <Text fontSize="sm">Unități</Text>
+              <InfoTip label="Alege sistemul de unități pentru afișarea distanțelor: Imperial (ft/in) sau Metric (cm)." />
             </Flex>
             <Box flexGrow={1}>
               <RadioGroup
@@ -630,6 +731,7 @@ const cropFactor = isCustomSensor
               <Text fontSize="sm" textAlign="right">
                 Distanță ({system === "Imperial" ? "ft" : "m"})
               </Text>
+              <InfoTip label="Distanța până la subiectul pe care vrei să-l focalizezi. Cu cât te apropii mai mult, cu atât profunzimea de câmp devine mai mică." />
             </Flex>
             <Box flexGrow={1}>
               <Slider
@@ -663,6 +765,7 @@ const cropFactor = isCustomSensor
               <Text fontSize="sm" textAlign="right">
                 Distanța Focală (mm)
               </Text>
+              <InfoTip label="Distanță focală mai mare = câmp vizual mai îngust și profunzime de câmp mai mică, la aceeași diafragmă." />
             </Flex>
             <Box flexGrow={1}>
               <Slider
@@ -712,6 +815,7 @@ const cropFactor = isCustomSensor
             <Flex w="20%" justify="flex-end" align="center" gap={1.5}>
               <Icon as={TbAperture} boxSize={4} color={mutedText} />
               <Text fontSize="sm">Diafragmă</Text>
+              <InfoTip label="Diafragmă mai deschisă (f mic) = profunzime de câmp mai mică, dar mai multă lumină. Diafragmă închisă (f mare) = profunzime mai mare, dar mai puțină lumină." />
             </Flex>
             <Box flexGrow={1}>
               <Slider
@@ -789,6 +893,7 @@ const cropFactor = isCustomSensor
                 <Text fontSize="sm" textAlign="right">
                   Senzor
                 </Text>
+                <InfoTip label="Senzorii mai mici au, de regulă, profunzime de câmp mai mare la aceeași distanță focală și diafragmă — de-asta un telefon are totul clar, iar un obiectiv full-frame poate izola subiectul." />
               </Flex>
               <Box flexGrow={1}>
                 <Select
@@ -832,6 +937,7 @@ const cropFactor = isCustomSensor
                 <Text fontSize="sm" textAlign="right">
                   Subiect
                 </Text>
+                <InfoTip label="Alege un subiect de referință, ca să vizualizezi mai ușor scara scenei și unde cade zona de focus pe el." />
               </Flex>
               <Box flexGrow={1}>
                 <Select
@@ -1006,6 +1112,17 @@ const cropFactor = isCustomSensor
 
         {/* GitHub Footer */}
         <Box pt={2} pb={6} textAlign="center">
+          <Button
+            size="sm"
+            variant="ghost"
+            leftIcon={<Icon as={FiLink} />}
+            color={mutedText}
+            _hover={{ color: colorMode === "dark" ? "gray.200" : "gray.800" }}
+            onClick={copyShareLink}
+            mr={2}
+          >
+            Copiază Link
+          </Button>
           <Button
             as="a"
             href="https://github.com/gordasgdc/depth-of-field"
