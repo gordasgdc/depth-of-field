@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useRef } from "react";
 import {
   Slider,
   SliderTrack,
@@ -20,12 +20,15 @@ import {
   SimpleGrid,
   Badge,
   IconButton,
+  Switch,
+  FormControl,
+  FormLabel,
   useColorMode,
   useColorModeValue,
   Tooltip,
 } from "@chakra-ui/react";
 import { TbRuler, TbAperture, TbZoomIn, TbUser } from "react-icons/tb";
-import { FiGithub, FiCamera, FiSun, FiMoon } from "react-icons/fi";
+import { FiGithub, FiCamera, FiSun, FiMoon, FiPlay, FiHeart } from "react-icons/fi";
 import { toImperial, toMetric } from "./utils/units";
 import { buildNativeSelectStyles } from "./selectStyles";
 
@@ -153,6 +156,83 @@ const COMMON_SETUPS: {
 
 const SYSTEMS = ["Metric", "Imperial"] as const;
 
+// Presetări pentru camere video reale, folosite frecvent la filmări de nuntă.
+// Fiecare presetare mapează camera pe formatul ei real de senzor (în modul video),
+// cu o combinație tipică de distanță focală și diafragmă pentru acel gen de cadru.
+const VIDEO_WEDDING_SETUPS: {
+  name: string;
+  brand: "Sony" | "Panasonic" | "Canon";
+  focalLength: number;
+  aperture: number;
+  idealDistance: number;
+  sensor: string;
+  note: string;
+}[] = [
+  {
+    name: "Sony A7S III / FX3 — 35mm f/1.8",
+    brand: "Sony",
+    focalLength: 35,
+    aperture: 1.8,
+    idealDistance: 60,
+    sensor: "35mm (cadru complet)",
+    note: "Cadru complet, fără crop video — ideal pentru discurs sau ceremonie",
+  },
+  {
+    name: "Sony A7 III / A7 IV — 50mm f/1.4",
+    brand: "Sony",
+    focalLength: 50,
+    aperture: 1.4,
+    idealDistance: 72,
+    sensor: "35mm (cadru complet)",
+    note: "Portret cu bokeh puternic — bun pentru primii ai mirilor",
+  },
+  {
+    name: "Sony FX30 / A6400 — 35mm f/1.8",
+    brand: "Sony",
+    focalLength: 35,
+    aperture: 1.8,
+    idealDistance: 60,
+    sensor: "APS-C",
+    note: "Senzor APS-C — atenție, crop video suplimentar pe unele modele",
+  },
+  {
+    name: "Panasonic GH5 / GH6 — 25mm f/1.7",
+    brand: "Panasonic",
+    focalLength: 25,
+    aperture: 1.7,
+    idealDistance: 48,
+    sensor: "Micro Four Thirds",
+    note: "Micro Four Thirds — profunzime de câmp mai mare, ideal pt. run-and-gun",
+  },
+  {
+    name: "Panasonic S5 / S1H — 35mm f/1.8",
+    brand: "Panasonic",
+    focalLength: 35,
+    aperture: 1.8,
+    idealDistance: 60,
+    sensor: "35mm (cadru complet)",
+    note: "Cadru complet — bun echilibru între bokeh și zonă de focus",
+  },
+  {
+    name: "Canon R6 / R6 II — 50mm f/1.2",
+    brand: "Canon",
+    focalLength: 50,
+    aperture: 1.2,
+    idealDistance: 72,
+    sensor: "35mm (cadru complet)",
+    note: "Bokeh extrem — profunzime de câmp foarte mică, focus critic",
+  },
+  {
+    name: "Canon C70 — 35mm T2.0 (Super 35)",
+    brand: "Canon",
+    focalLength: 35,
+    aperture: 2.0,
+    idealDistance: 60,
+    sensor: "APS-C",
+    note: "Senzor Super 35, apropiat ca dimensiune de APS-C",
+  },
+];
+
 function clamp(value: number, min: number, max: number) {
   return Math.min(Math.max(value, min), max);
 }
@@ -165,8 +245,13 @@ function App() {
   const [subject, setSubject] = useState("Persoană");
   const [system, setSystem] = useState<(typeof SYSTEMS)[number]>("Imperial");
   const [sensor, setSensor] = useState("35mm (cadru complet)");
-  const [customSensorWidth, setCustomSensorWidth] = useState(36);
-const [customSensorHeight, setCustomSensorHeight] = useState(24);
+    const [customSensorWidth, setCustomSensorWidth] = useState(36);
+  const [customSensorHeight, setCustomSensorHeight] = useState(24);
+  const [weddingMode, setWeddingMode] = useState(false);
+  const [rackStartInInches, setRackStartInInches] = useState(48);
+  const [rackEndInInches, setRackEndInInches] = useState(120);
+  const [isRacking, setIsRacking] = useState(false);
+  const rackAnimationRef = useRef<number | null>(null);
 
   const { colorMode, toggleColorMode } = useColorMode();
 
@@ -255,6 +340,8 @@ const cropFactor = isCustomSensor
   const mutedText = useColorModeValue("gray.500", "gray.400");
   const topBarBg = useColorModeValue("gray.50", "gray.900");
   const graphicTextColor = useColorModeValue("#1A202C", "#F7FAFC");
+  const weddingBg = useColorModeValue("pink.50", "pink.900");
+  const weddingBorder = useColorModeValue("pink.200", "pink.700");
   const nativeSelectStyles = buildNativeSelectStyles(colorMode);
 
   const labelStyles = {
@@ -283,6 +370,44 @@ const cropFactor = isCustomSensor
         }));
     }
   }, [system, farDistanceInInches]);
+
+  // ── Simulare "rack focus" (trecere de focus în timpul filmării) ──
+  const RACK_DURATION_MS = 2500;
+  function startRackFocus() {
+    if (isRacking) return;
+    setIsRacking(true);
+    const startValue = rackStartInInches;
+    const endValue = rackEndInInches;
+    const startTime = performance.now();
+
+    function step(now: number) {
+      const elapsed = now - startTime;
+      const progress = clamp(elapsed / RACK_DURATION_MS, 0, 1);
+      // ease-in-out pentru o tranziție mai naturală, ca la un focus pull real
+      const eased =
+        progress < 0.5
+          ? 2 * progress * progress
+          : 1 - Math.pow(-2 * progress + 2, 2) / 2;
+      const currentValue = startValue + (endValue - startValue) * eased;
+      setDistanceToSubjectInInches(currentValue);
+
+      if (progress < 1) {
+        rackAnimationRef.current = requestAnimationFrame(step);
+      } else {
+        setIsRacking(false);
+        rackAnimationRef.current = null;
+      }
+    }
+    rackAnimationRef.current = requestAnimationFrame(step);
+  }
+
+  useEffect(() => {
+    return () => {
+      if (rackAnimationRef.current) {
+        cancelAnimationFrame(rackAnimationRef.current);
+      }
+    };
+  }, []);
 
   return (
     <>
@@ -419,6 +544,57 @@ const cropFactor = isCustomSensor
             </Button>
           </Tooltip>
         </Flex>
+
+        {/* Mod Nuntă — explicație practică pentru filmare run-and-gun */}
+        <FormControl display="flex" alignItems="center" mt={4} justifyContent="center">
+          <Icon as={FiHeart} boxSize={4} color="pink.400" mr={2} />
+          <FormLabel htmlFor="wedding-mode" mb="0" fontSize="sm">
+            Mod Nuntă (setează și uită)
+          </FormLabel>
+          <Switch
+            id="wedding-mode"
+            colorScheme="pink"
+            isChecked={weddingMode}
+            onChange={(e) => setWeddingMode(e.target.checked)}
+          />
+        </FormControl>
+
+        {weddingMode && (
+          <Box
+            mt={3}
+            p={3}
+            rounded="lg"
+            bg={weddingBg}
+            border="1px"
+            borderColor={weddingBorder}
+            fontSize="sm"
+            textAlign="center"
+          >
+            {isInfinityFar ? (
+              <>
+                La <strong>f/{aperture}</strong>, {focalLengthInMillimeters}mm, poți
+                filma liber de la{" "}
+                <strong>{convertUnits(nearFocalPointInInches, 0)}</strong> până la{" "}
+                <strong>infinit</strong> — totul rămâne clar, fără să mai atingi
+                focusul.
+              </>
+            ) : (
+              <>
+                La <strong>f/{aperture}</strong>, {focalLengthInMillimeters}mm, tot ce
+                se află între{" "}
+                <strong>{convertUnits(nearFocalPointInInches, 0)}</strong> și{" "}
+                <strong>{convertUnits(farFocalPointInInches, 0)}</strong> va fi clar.
+                Cât timp mirii rămân în acest interval, poți filma fără să mai
+                atingi focusul manual.
+              </>
+            )}
+            <br />
+            <Text as="span" fontSize="xs" color={mutedText}>
+              Sfat: setează focusul la distanța hiperfocală (butonul de mai sus)
+              pentru cea mai largă zonă de siguranță posibilă.
+            </Text>
+          </Box>
+        )}
       </Box>
 
       {/* ── Controls ── */}
@@ -688,6 +864,68 @@ const cropFactor = isCustomSensor
           </Flex>
         </Box>
 
+        {/* Rack Focus Simulator */}
+        <Box pt={6}>
+          <Flex gap={2} align="center" mb={2}>
+            <Icon as={FiPlay} boxSize={4} color={mutedText} />
+            <Text fontSize="sm" fontWeight="semibold">
+              Simulare Trecere de Focus (Rack Focus)
+            </Text>
+          </Flex>
+          <Text fontSize="xs" color={mutedText} mb={3}>
+            Setează o distanță de start și una finală, apoi apasă Play ca să
+            vezi cum se schimbă profunzimea de câmp în timpul unei treceri de
+            focus — util pentru exersarea unui rack focus manual la nuntă.
+          </Text>
+          <Flex gap={3} align="center" wrap="wrap">
+            <Flex align="center" gap={2}>
+              <Text fontSize="xs" color={mutedText}>
+                Start
+              </Text>
+              <input
+                type="number"
+                value={Math.round(rackStartInInches)}
+                onChange={(e) =>
+                  setRackStartInInches(Number(e.target.value))
+                }
+                style={{
+                  width: 70,
+                  padding: "2px 6px",
+                  borderRadius: 6,
+                  border: "1px solid #ccc",
+                }}
+              />
+            </Flex>
+            <Flex align="center" gap={2}>
+              <Text fontSize="xs" color={mutedText}>
+                Final
+              </Text>
+              <input
+                type="number"
+                value={Math.round(rackEndInInches)}
+                onChange={(e) => setRackEndInInches(Number(e.target.value))}
+                style={{
+                  width: 70,
+                  padding: "2px 6px",
+                  borderRadius: 6,
+                  border: "1px solid #ccc",
+                }}
+              />
+            </Flex>
+            <Button
+              size="sm"
+              colorScheme="purple"
+              variant="outline"
+              leftIcon={<Icon as={FiPlay} />}
+              isLoading={isRacking}
+              loadingText="Rulează..."
+              onClick={startRackFocus}
+            >
+              Redă tranziția
+            </Button>
+          </Flex>
+        </Box>
+
         <Divider mt={6} borderColor={borderColor} />
 
         {/* Quick Presets */}
@@ -719,6 +957,48 @@ const cropFactor = isCustomSensor
                 >
                   {setup.name}
                 </Button>
+              </WrapItem>
+            ))}
+          </Wrap>
+        </Box>
+
+        {/* Video / Wedding Presets */}
+        <Box pt={2} pb={2}>
+          <Text
+            fontSize="xs"
+            fontWeight="semibold"
+            color={mutedText}
+            textAlign="center"
+            textTransform="uppercase"
+            letterSpacing="wider"
+            mb={3}
+          >
+            Presetări Video / Nuntă (camere reale)
+          </Text>
+          <Wrap justify="center" spacing={2}>
+            {VIDEO_WEDDING_SETUPS.map((setup) => (
+              <WrapItem key={setup.name}>
+                <Tooltip label={setup.note}>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    colorScheme={
+                      setup.brand === "Sony"
+                        ? "orange"
+                        : setup.brand === "Panasonic"
+                        ? "cyan"
+                        : "red"
+                    }
+                    onClick={() => {
+                      setFocalLengthInMillimeters(setup.focalLength);
+                      setAperture(setup.aperture);
+                      setSensor(setup.sensor);
+                      setDistanceToSubjectInInches(setup.idealDistance);
+                    }}
+                  >
+                    {setup.name}
+                  </Button>
+                </Tooltip>
               </WrapItem>
             ))}
           </Wrap>

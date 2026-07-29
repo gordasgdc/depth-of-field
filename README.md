@@ -1,12 +1,20 @@
 # Simulator de Profunzime a Câmpului
 
-O aplicație web care te ajută să înțelegi profunzimea de câmp a unui obiectiv foto. Poți ajusta diafragma, distanța focală și distanța până la subiect pentru a vedea cum se schimbă profunzimea de câmp. Aplicația mai arată și distanța hiperfocală, precum și limitele apropiată și îndepărtată ale profunzimii de câmp.
+O aplicație web care te ajută să înțelegi profunzimea de câmp a unui obiectiv foto sau video. Poți ajusta diafragma, distanța focală și distanța până la subiect pentru a vedea cum se schimbă profunzimea de câmp. Aplicația mai arată și distanța hiperfocală, precum și limitele apropiată și îndepărtată ale profunzimii de câmp.
 
 Creat de **Cristi Gordas** ([@gordasgdc](https://github.com/gordasgdc)).
 
 Realizat pe baza proiectului original [depth-of-field](https://github.com/jherr/depth-of-field) al lui Jason Herr.
 
 [Demo Live](https://gordasgdc.github.io/depth-of-field/)
+
+## Funcționalități pentru video / wedding
+
+Pe lângă simulatorul clasic de foto, aplicația include:
+
+- **Presetări Video / Nuntă** — combinații reale de cameră + obiectiv pentru Sony (A7 III/IV, A7S III, FX3, FX30, A6400), Panasonic (GH5, GH6, S5, S1H) și Canon (R6, R6 II, C70), cu note despre crop-ul video specific fiecărei camere.
+- **Simulare Rack Focus** — setezi o distanță de start și una finală, apeși Play și vezi live cum se schimbă profunzimea de câmp în timpul unei treceri de focus (tranziție cu ease-in-out, ca la un focus pull real).
+- **Mod Nuntă (setează și uită)** — un switch care traduce distanța apropiată/îndepărtată calculată într-un sfat practic în limbaj simplu: "la acest f-stop și distanță, poți filma liber între X și Y metri, fără să mai atingi focusul".
 
 ## Cum să pornești proiectul
 
