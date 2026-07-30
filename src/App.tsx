@@ -182,9 +182,9 @@ function metersToInches(meters: number): number {
   return meters * 39.3701;
 }
 
-// Scenarii foto/video comune — Prioritate 1. Un click setează instant
-// diafragma, distanța focală și distanța până la subiect.
-const QUICK_SCENARIOS: {
+const CAPTURE_MODES = ["Foto", "Video"] as const;
+
+type QuickScenario = {
   name: string;
   icon: typeof TbUser;
   colorScheme: string;
@@ -192,7 +192,11 @@ const QUICK_SCENARIOS: {
   focalLength: number;
   distanceInMeters: number;
   sensor: string;
-}[] = [
+};
+
+// Scenarii foto comune — Prioritate 1. Un click setează instant
+// diafragma, distanța focală și distanța până la subiect.
+const PHOTO_QUICK_SCENARIOS: QuickScenario[] = [
   {
     name: "Portret",
     icon: TbUser,
@@ -228,6 +232,47 @@ const QUICK_SCENARIOS: {
     focalLength: 35,
     distanceInMeters: 3,
     sensor: "Full Frame (35mm)",
+  },
+];
+
+// Scenarii video echivalente — aceleași principii de profunzime de câmp,
+// dar gândite pentru situații tipice de filmare.
+const VIDEO_QUICK_SCENARIOS: QuickScenario[] = [
+  {
+    name: "Interviu",
+    icon: TbUser,
+    colorScheme: "blue",
+    aperture: 2.8,
+    focalLength: 50,
+    distanceInMeters: 1.5,
+    sensor: "Full Frame (35mm)",
+  },
+  {
+    name: "B-roll Peisaj",
+    icon: TbMountain,
+    colorScheme: "green",
+    aperture: 8,
+    focalLength: 24,
+    distanceInMeters: 15,
+    sensor: "Full Frame (35mm)",
+  },
+  {
+    name: "Nuntă - filmare inele",
+    icon: FiHeart,
+    colorScheme: "pink",
+    aperture: 4,
+    focalLength: 50,
+    distanceInMeters: 5,
+    sensor: "Full Frame (35mm)",
+  },
+  {
+    name: "Vlog / Street",
+    icon: TbBuildingSkyscraper,
+    colorScheme: "orange",
+    aperture: 4,
+    focalLength: 24,
+    distanceInMeters: 1,
+    sensor: "APS-C",
   },
 ];
 
@@ -439,6 +484,12 @@ function App() {
     const v = getInitialParam("system");
     return v === "Metric" ? "Metric" : "Imperial";
   });
+  const [captureMode, setCaptureMode] = useState<(typeof CAPTURE_MODES)[number]>(
+    () => {
+      const v = getInitialParam("captureMode");
+      return v === "Video" ? "Video" : "Foto";
+    }
+  );
   const [sensor, setSensor] = useState(
     () => getInitialParam("sensor") || "Full Frame (35mm)"
   );
@@ -615,6 +666,9 @@ const cropFactor = isCustomSensor
   const weddingBorder = useColorModeValue("pink.200", "pink.700");
   const nativeSelectStyles = buildNativeSelectStyles(colorMode);
 
+  const activeQuickScenarios =
+    captureMode === "Video" ? VIDEO_QUICK_SCENARIOS : PHOTO_QUICK_SCENARIOS;
+
   const labelStyles = {
     mt: "2",
     ml: "-2.5",
@@ -749,7 +803,7 @@ const cropFactor = isCustomSensor
     persistPresets(savedPresets.filter((p) => p.id !== id));
   }
 
-  function applyQuickScenario(scenario: (typeof QUICK_SCENARIOS)[number]) {
+  function applyQuickScenario(scenario: QuickScenario) {
     setFocalLengthInMillimeters(scenario.focalLength);
     setAperture(scenario.aperture);
     setSensor(scenario.sensor);
@@ -788,6 +842,7 @@ const cropFactor = isCustomSensor
     params.set("subject", subject);
     params.set("system", system);
     params.set("sensor", sensor);
+    params.set("captureMode", captureMode);
     if (sensor === "Custom") {
       params.set("sw", String(customSensorWidth));
       params.set("sh", String(customSensorHeight));
@@ -803,6 +858,7 @@ const cropFactor = isCustomSensor
     sensor,
     customSensorWidth,
     customSensorHeight,
+    captureMode,
   ]);
 
   function copyShareLink() {
@@ -867,6 +923,20 @@ const cropFactor = isCustomSensor
 
       {/* ── Scenarii Comune (Prioritate 1) ── */}
       <Box px={4} pt={4}>
+        <Flex justify="center" mb={3}>
+          <RadioGroup
+            onChange={(v) => setCaptureMode(v as (typeof CAPTURE_MODES)[number])}
+            value={captureMode}
+          >
+            <Stack direction="row" spacing={4}>
+              {CAPTURE_MODES.map((m) => (
+                <Radio value={m} key={m} colorScheme="purple">
+                  {m}
+                </Radio>
+              ))}
+            </Stack>
+          </RadioGroup>
+        </Flex>
         <Text
           fontSize="xs"
           fontWeight="semibold"
@@ -876,10 +946,10 @@ const cropFactor = isCustomSensor
           letterSpacing="wider"
           mb={2}
         >
-          Scenarii Comune
+          Scenarii Comune · {captureMode}
         </Text>
         <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2}>
-          {QUICK_SCENARIOS.map((scenario) => (
+          {activeQuickScenarios.map((scenario) => (
             <Button
               key={scenario.name}
               onClick={() => applyQuickScenario(scenario)}
@@ -1305,7 +1375,9 @@ const cropFactor = isCustomSensor
           <Flex gap={2} align="center">
             <Flex w="20%" justify="flex-end" align="center" gap={1.5}>
               <Icon as={TbAperture} boxSize={4} color={mutedText} />
-              <Text fontSize="sm">Diafragmă</Text>
+              <Text fontSize="sm">
+                {captureMode === "Video" ? "Diafragmă (T-stop aprox.)" : "Diafragmă"}
+              </Text>
               <InfoTip label="Diafragmă mai deschisă (f mic) = profunzime de câmp mai mică, dar mai multă lumină. Diafragmă închisă (f mare) = profunzime mai mare, dar mai puțină lumină." />
             </Flex>
             <Box flexGrow={1}>
@@ -1599,67 +1671,27 @@ const cropFactor = isCustomSensor
 
         <Divider mt={4} borderColor={borderColor} />
 
-        {/* Quick Presets */}
-        <Box pt={4} pb={2}>
-          <Text
-            fontSize="xs"
-            fontWeight="semibold"
-            color={mutedText}
-            textAlign="center"
-            textTransform="uppercase"
-            letterSpacing="wider"
-            mb={3}
-          >
-            Presetări Rapide
-          </Text>
-          <Wrap justify="center" spacing={2}>
-            {COMMON_SETUPS.map((setup) => (
-              <WrapItem key={setup.name}>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  colorScheme="blue"
-                  onClick={() => {
-                    setFocalLengthInMillimeters(setup.focalLength);
-                    setAperture(setup.aperture);
-                    setSensor(setup.sensor);
-                    setDistanceToSubjectInInches(setup.idealDistance);
-                  }}
-                >
-                  {setup.name}
-                </Button>
-              </WrapItem>
-            ))}
-          </Wrap>
-        </Box>
-
-        {/* Video / Wedding Presets */}
-        <Box pt={2} pb={2}>
-          <Text
-            fontSize="xs"
-            fontWeight="semibold"
-            color={mutedText}
-            textAlign="center"
-            textTransform="uppercase"
-            letterSpacing="wider"
-            mb={3}
-          >
-            Presetări Video / Nuntă (camere reale)
-          </Text>
-          <Wrap justify="center" spacing={2}>
-            {VIDEO_WEDDING_SETUPS.map((setup) => (
-              <WrapItem key={setup.name}>
-                <Tooltip label={setup.note}>
+        {/* Quick Presets — doar în modul Foto */}
+        {captureMode === "Foto" && (
+          <Box pt={4} pb={2}>
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color={mutedText}
+              textAlign="center"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={3}
+            >
+              Presetări Rapide
+            </Text>
+            <Wrap justify="center" spacing={2}>
+              {COMMON_SETUPS.map((setup) => (
+                <WrapItem key={setup.name}>
                   <Button
                     size="sm"
                     variant="outline"
-                    colorScheme={
-                      setup.brand === "Sony"
-                        ? "orange"
-                        : setup.brand === "Panasonic"
-                        ? "cyan"
-                        : "red"
-                    }
+                    colorScheme="blue"
                     onClick={() => {
                       setFocalLengthInMillimeters(setup.focalLength);
                       setAperture(setup.aperture);
@@ -1669,11 +1701,55 @@ const cropFactor = isCustomSensor
                   >
                     {setup.name}
                   </Button>
-                </Tooltip>
-              </WrapItem>
-            ))}
-          </Wrap>
-        </Box>
+                </WrapItem>
+              ))}
+            </Wrap>
+          </Box>
+        )}
+
+        {/* Video / Wedding Presets — doar în modul Video */}
+        {captureMode === "Video" && (
+          <Box pt={2} pb={2}>
+            <Text
+              fontSize="xs"
+              fontWeight="semibold"
+              color={mutedText}
+              textAlign="center"
+              textTransform="uppercase"
+              letterSpacing="wider"
+              mb={3}
+            >
+              Presetări Video / Nuntă (camere reale)
+            </Text>
+            <Wrap justify="center" spacing={2}>
+              {VIDEO_WEDDING_SETUPS.map((setup) => (
+                <WrapItem key={setup.name}>
+                  <Tooltip label={setup.note}>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      colorScheme={
+                        setup.brand === "Sony"
+                          ? "orange"
+                          : setup.brand === "Panasonic"
+                          ? "cyan"
+                          : "red"
+                      }
+                      onClick={() => {
+                        setFocalLengthInMillimeters(setup.focalLength);
+                        setAperture(setup.aperture);
+                        setSensor(setup.sensor);
+                        setDistanceToSubjectInInches(setup.idealDistance);
+                      }}
+                    >
+                      {setup.name}
+                    </Button>
+                  </Tooltip>
+                </WrapItem>
+              ))}
+            </Wrap>
+          </Box>
+        )}
 
         {/* FAQ / Ajutor */}
         <Box pt={4} pb={2} px={{ base: 0, md: 4 }}>
