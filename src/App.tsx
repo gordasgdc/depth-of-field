@@ -27,8 +27,22 @@ import {
   useColorModeValue,
   useToast,
   Tooltip,
+  Modal,
+  ModalOverlay,
+  ModalContent,
+  ModalHeader,
+  ModalBody,
+  ModalFooter,
+  ModalCloseButton,
+  useDisclosure,
+  Accordion,
+  AccordionItem,
+  AccordionButton,
+  AccordionPanel,
+  AccordionIcon,
+  SlideFade,
 } from "@chakra-ui/react";
-import { TbRuler, TbAperture, TbZoomIn, TbUser } from "react-icons/tb";
+import { TbRuler, TbAperture, TbZoomIn, TbUser, TbMountain, TbBuildingSkyscraper, TbDeviceFloppy, TbX } from "react-icons/tb";
 import { FiGithub, FiCamera, FiSun, FiMoon, FiPlay, FiHeart, FiLink, FiPrinter } from "react-icons/fi";
 import { toImperial, toMetric } from "./utils/units";
 import { buildNativeSelectStyles } from "./selectStyles";
@@ -161,6 +175,85 @@ const COMMON_SETUPS: {
 ];
 
 const SYSTEMS = ["Metric", "Imperial"] as const;
+
+// Metri → inch, folosit pentru presetările rapide de mai jos (parametrii au
+// fost gândiți în metri, motorul de calcul intern lucrează în inch).
+function metersToInches(meters: number): number {
+  return meters * 39.3701;
+}
+
+// Scenarii foto/video comune — Prioritate 1. Un click setează instant
+// diafragma, distanța focală și distanța până la subiect.
+const QUICK_SCENARIOS: {
+  name: string;
+  icon: typeof TbUser;
+  colorScheme: string;
+  aperture: number;
+  focalLength: number;
+  distanceInMeters: number;
+  sensor: string;
+}[] = [
+  {
+    name: "Portret",
+    icon: TbUser,
+    colorScheme: "blue",
+    aperture: 1.8,
+    focalLength: 85,
+    distanceInMeters: 2,
+    sensor: "Full Frame (35mm)",
+  },
+  {
+    name: "Peisaj",
+    icon: TbMountain,
+    colorScheme: "green",
+    aperture: 11,
+    focalLength: 24,
+    distanceInMeters: 10,
+    sensor: "Full Frame (35mm)",
+  },
+  {
+    name: "Nuntă - inele",
+    icon: FiHeart,
+    colorScheme: "pink",
+    aperture: 4,
+    focalLength: 50,
+    distanceInMeters: 5,
+    sensor: "Full Frame (35mm)",
+  },
+  {
+    name: "Street photo",
+    icon: TbBuildingSkyscraper,
+    colorScheme: "orange",
+    aperture: 5.6,
+    focalLength: 35,
+    distanceInMeters: 3,
+    sensor: "Full Frame (35mm)",
+  },
+];
+
+// Întrebări frecvente — Prioritate 5.
+const FAQ_ITEMS: { question: string; answer: string }[] = [
+  {
+    question: "Ce este profunzimea de câmp?",
+    answer:
+      "Profunzimea de câmp (DoF) este zona din fața și din spatele subiectului focalizat care rămâne acceptabil de clară în imagine. O profunzime mică izolează subiectul de fundal (bokeh puternic), iar o profunzime mare menține totul clar, de la prim-plan până în depărtare.",
+  },
+  {
+    question: "Ce diafragmă să aleg pentru un portret?",
+    answer:
+      "Pentru portrete, o diafragmă deschisă (f/1.4–f/2.8) izolează frumos subiectul de fundal. La mai multe persoane în cadru, urcă spre f/4–f/5.6 ca toată lumea să rămână clară, mai ales dacă nu sunt la aceeași distanță de cameră.",
+  },
+  {
+    question: "Ce înseamnă distanța hiperfocală?",
+    answer:
+      "Distanța hiperfocală este punctul de focalizare care maximizează profunzimea de câmp: dacă focalizezi acolo, tot ce se află de la jumătatea acestei distanțe până la infinit rămâne clar. E utilă la peisaje sau filmări unde nu vrei să mai atingi focusul.",
+  },
+  {
+    question: "Ce format de senzor să folosesc?",
+    answer:
+      "Senzorii mai mari (Full Frame, format mediu) oferă profunzime de câmp mai mică la aceeași diafragmă și distanță focală — buni pentru izolarea subiectului. Senzorii mai mici (APS-C, Micro Four Thirds, telefon) oferă profunzime mai mare, utilă când vrei ca totul să fie clar.",
+  },
+];
 
 // Presetări pentru camere video reale, folosite frecvent la filmări de nuntă.
 // Fiecare presetare mapează camera pe formatul ei real de senzor (în modul video),
@@ -366,6 +459,35 @@ function App() {
   const [compareSensor, setCompareSensor] = useState("APS-C");
   const toast = useToast();
 
+  // ── Onboarding (Prioritate 2) ──
+  const {
+    isOpen: isOnboardingOpen,
+    onClose: onOnboardingClose,
+    onOpen: onOnboardingOpen,
+  } = useDisclosure();
+  const ONBOARDING_STORAGE_KEY = "dof-onboarding-seen-v1";
+
+  // ── Presetări salvate de utilizator (Prioritate 6) ──
+  const SAVED_PRESETS_STORAGE_KEY = "dof-saved-presets-v1";
+  type SavedPreset = {
+    id: string;
+    name: string;
+    distanceToSubjectInInches: number;
+    focalLengthInMillimeters: number;
+    aperture: number;
+    sensor: string;
+    system: (typeof SYSTEMS)[number];
+  };
+  const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => {
+    if (typeof window === "undefined") return [];
+    try {
+      const raw = window.localStorage.getItem(SAVED_PRESETS_STORAGE_KEY);
+      return raw ? (JSON.parse(raw) as SavedPreset[]) : [];
+    } catch {
+      return [];
+    }
+  });
+
   const { colorMode, toggleColorMode } = useColorMode();
 
   const convertUnits = system === "Imperial" ? toImperial : toMetric;
@@ -558,6 +680,105 @@ const cropFactor = isCustomSensor
     };
   }, []);
 
+  // ── Onboarding: arată ghidul o singură dată, la prima vizită ──
+  useEffect(() => {
+    try {
+      const seen = window.localStorage.getItem(ONBOARDING_STORAGE_KEY);
+      if (!seen) {
+        onOnboardingOpen();
+      }
+    } catch {
+      // localStorage indisponibil (ex: mod privat) — ignorăm, nu blocăm aplicația
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  function dismissOnboarding() {
+    try {
+      window.localStorage.setItem(ONBOARDING_STORAGE_KEY, "true");
+    } catch {
+      // ignorăm erorile de localStorage
+    }
+    onOnboardingClose();
+  }
+
+  // ── Salvare presetări (Prioritate 6) ──
+  function persistPresets(next: SavedPreset[]) {
+    setSavedPresets(next);
+    try {
+      window.localStorage.setItem(
+        SAVED_PRESETS_STORAGE_KEY,
+        JSON.stringify(next)
+      );
+    } catch {
+      // ignorăm erorile de localStorage (ex: quota depășită)
+    }
+  }
+
+  function saveCurrentPreset() {
+    const newPreset: SavedPreset = {
+      id: `${Date.now()}`,
+      name: `${focalLengthInMillimeters}mm · f/${aperture}`,
+      distanceToSubjectInInches,
+      focalLengthInMillimeters,
+      aperture,
+      sensor,
+      system,
+    };
+    const next = [newPreset, ...savedPresets].slice(0, 3);
+    persistPresets(next);
+    toast({
+      title: "Combinație salvată!",
+      description: `${newPreset.name} — o poți încărca oricând mai jos.`,
+      status: "success",
+      duration: 2500,
+      isClosable: true,
+      position: "top",
+    });
+  }
+
+  function loadPreset(preset: SavedPreset) {
+    setDistanceToSubjectInInches(preset.distanceToSubjectInInches);
+    setFocalLengthInMillimeters(preset.focalLengthInMillimeters);
+    setAperture(preset.aperture);
+    setSensor(preset.sensor);
+    setSystem(preset.system);
+  }
+
+  function deletePreset(id: string) {
+    persistPresets(savedPresets.filter((p) => p.id !== id));
+  }
+
+  function applyQuickScenario(scenario: (typeof QUICK_SCENARIOS)[number]) {
+    setFocalLengthInMillimeters(scenario.focalLength);
+    setAperture(scenario.aperture);
+    setSensor(scenario.sensor);
+    setDistanceToSubjectInInches(metersToInches(scenario.distanceInMeters));
+  }
+
+  // ── Badge "Distanța hiperfocală s-a mutat" (Prioritate 3) ──
+  const [hyperfocalBadge, setHyperfocalBadge] = useState<string | null>(null);
+  const prevHyperfocalRoundedRef = useRef<number | null>(null);
+  useEffect(() => {
+    const roundedMeters = Math.round((hyperFocalDistanceInMM / 1000) * 10) / 10;
+    if (
+      prevHyperfocalRoundedRef.current !== null &&
+      prevHyperfocalRoundedRef.current !== roundedMeters
+    ) {
+      setHyperfocalBadge(
+        `Distanța hiperfocală s-a mutat la ${convertUnits(
+          hyperFocalDistanceInMM / 25.4,
+          1
+        )}`
+      );
+      const timeout = setTimeout(() => setHyperfocalBadge(null), 2800);
+      prevHyperfocalRoundedRef.current = roundedMeters;
+      return () => clearTimeout(timeout);
+    }
+    prevHyperfocalRoundedRef.current = roundedMeters;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hyperFocalDistanceInMM]);
+
   // ── Sincronizare setup curent cu URL-ul (pentru partajare prin link) ──
   useEffect(() => {
     const params = new URLSearchParams();
@@ -643,6 +864,38 @@ const cropFactor = isCustomSensor
           />
         </Tooltip>
       </Flex>
+
+      {/* ── Scenarii Comune (Prioritate 1) ── */}
+      <Box px={4} pt={4}>
+        <Text
+          fontSize="xs"
+          fontWeight="semibold"
+          color={mutedText}
+          textAlign="center"
+          textTransform="uppercase"
+          letterSpacing="wider"
+          mb={2}
+        >
+          Scenarii Comune
+        </Text>
+        <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2}>
+          {QUICK_SCENARIOS.map((scenario) => (
+            <Button
+              key={scenario.name}
+              onClick={() => applyQuickScenario(scenario)}
+              colorScheme={scenario.colorScheme}
+              variant="solid"
+              size="sm"
+              minH="44px"
+              whiteSpace="normal"
+              fontSize="sm"
+              leftIcon={<Icon as={scenario.icon} boxSize={4} />}
+            >
+              {scenario.name}
+            </Button>
+          ))}
+        </SimpleGrid>
+      </Box>
 
       <Box p={2} pt={4}>
         {compareMode && (
@@ -944,6 +1197,53 @@ const cropFactor = isCustomSensor
                 </SliderTrack>
                 <SliderThumb />
               </Slider>
+              {/* Bară de profunzime colorată — verde = zonă clară, roșu = neclară */}
+              <Box
+                mt={1}
+                h="8px"
+                rounded="full"
+                transition="background 0.25s ease"
+                bg={`linear-gradient(to right, #E53E3E 0%, #E53E3E ${clamp(
+                  ((nearFocalPointInInches - 10) / (400 - 10)) * 100,
+                  0,
+                  100
+                )}%, #38A169 ${clamp(
+                  ((nearFocalPointInInches - 10) / (400 - 10)) * 100,
+                  0,
+                  100
+                )}%, #38A169 ${
+                  isInfinityFar
+                    ? 100
+                    : clamp(
+                        ((farFocalPointInInches - 10) / (400 - 10)) * 100,
+                        0,
+                        100
+                      )
+                }%, #E53E3E ${
+                  isInfinityFar
+                    ? 100
+                    : clamp(
+                        ((farFocalPointInInches - 10) / (400 - 10)) * 100,
+                        0,
+                        100
+                      )
+                }%, #E53E3E 100%)`}
+              />
+              {hyperfocalBadge && (
+                <SlideFade in={!!hyperfocalBadge} offsetY={-6}>
+                  <Badge
+                    mt={2}
+                    colorScheme="teal"
+                    variant="subtle"
+                    px={2}
+                    py={0.5}
+                    fontSize="xs"
+                    rounded="md"
+                  >
+                    {hyperfocalBadge}
+                  </Badge>
+                </SlideFade>
+              )}
             </Box>
           </Flex>
         </Box>
@@ -1225,6 +1525,80 @@ const cropFactor = isCustomSensor
 
         <Divider mt={6} borderColor={borderColor} />
 
+        {/* Presetări salvate de utilizator */}
+        <Box pt={4} pb={2}>
+          <Flex justify="center" mb={3}>
+            <Tooltip
+              label={
+                savedPresets.length >= 3
+                  ? "Ai deja 3 presetări salvate — cea mai veche va fi înlocuită"
+                  : "Salvează combinația curentă de senzor / focală / diafragmă / distanță"
+              }
+            >
+              <Button
+                size="sm"
+                minH="44px"
+                colorScheme="teal"
+                variant="outline"
+                leftIcon={<Icon as={TbDeviceFloppy} boxSize={4} />}
+                onClick={saveCurrentPreset}
+              >
+                Salvează această combinație
+              </Button>
+            </Tooltip>
+          </Flex>
+
+          {savedPresets.length > 0 && (
+            <>
+              <Text
+                fontSize="xs"
+                fontWeight="semibold"
+                color={mutedText}
+                textAlign="center"
+                textTransform="uppercase"
+                letterSpacing="wider"
+                mb={2}
+              >
+                Presetările Mele
+              </Text>
+              <Wrap justify="center" spacing={2}>
+                {savedPresets.map((preset) => (
+                  <WrapItem key={preset.id}>
+                    <Flex
+                      align="center"
+                      gap={1}
+                      border="1px"
+                      borderColor={borderColor}
+                      rounded="md"
+                      pl={2}
+                    >
+                      <Button
+                        size="sm"
+                        minH="44px"
+                        variant="ghost"
+                        onClick={() => loadPreset(preset)}
+                      >
+                        {preset.name} · {preset.sensor}
+                      </Button>
+                      <IconButton
+                        aria-label="Șterge presetarea"
+                        icon={<Icon as={TbX} boxSize={3.5} />}
+                        size="sm"
+                        minH="44px"
+                        variant="ghost"
+                        colorScheme="red"
+                        onClick={() => deletePreset(preset.id)}
+                      />
+                    </Flex>
+                  </WrapItem>
+                ))}
+              </Wrap>
+            </>
+          )}
+        </Box>
+
+        <Divider mt={4} borderColor={borderColor} />
+
         {/* Quick Presets */}
         <Box pt={4} pb={2}>
           <Text
@@ -1301,6 +1675,38 @@ const cropFactor = isCustomSensor
           </Wrap>
         </Box>
 
+        {/* FAQ / Ajutor */}
+        <Box pt={4} pb={2} px={{ base: 0, md: 4 }}>
+          <Text
+            fontSize="xs"
+            fontWeight="semibold"
+            color={mutedText}
+            textAlign="center"
+            textTransform="uppercase"
+            letterSpacing="wider"
+            mb={3}
+          >
+            Întrebări Frecvente
+          </Text>
+          <Accordion allowToggle>
+            {FAQ_ITEMS.map((item) => (
+              <AccordionItem key={item.question} borderColor={borderColor}>
+                <h2>
+                  <AccordionButton minH="44px" _hover={{ bg: cardBg }}>
+                    <Box as="span" flex="1" textAlign="left" fontSize="sm" fontWeight="medium">
+                      {item.question}
+                    </Box>
+                    <AccordionIcon />
+                  </AccordionButton>
+                </h2>
+                <AccordionPanel pb={4} fontSize="sm" color={mutedText}>
+                  {item.answer}
+                </AccordionPanel>
+              </AccordionItem>
+            ))}
+          </Accordion>
+        </Box>
+
         {/* GitHub Footer */}
         <Box pt={2} pb={6} textAlign="center">
           <Button
@@ -1352,6 +1758,60 @@ const cropFactor = isCustomSensor
         </Box>
       </Box>
       </Box>
+
+      {/* ── Ghid inițial (onboarding) ── */}
+      <Modal
+        isOpen={isOnboardingOpen}
+        onClose={dismissOnboarding}
+        isCentered
+        size={{ base: "sm", md: "lg" }}
+      >
+        <ModalOverlay />
+        <ModalContent mx={4}>
+          <ModalHeader>Bine ai venit</ModalHeader>
+          <ModalCloseButton />
+          <ModalBody>
+            <Text fontSize="sm" mb={4} color={mutedText}>
+              Câteva explicații rapide pentru controalele principale:
+            </Text>
+            <Stack spacing={3}>
+              <Flex gap={3} align="start">
+                <Icon as={TbAperture} boxSize={5} mt={0.5} color="blue.400" />
+                <Text fontSize="sm">
+                  <strong>Diafragma (f-stop)</strong> — controlează cât de
+                  blurat este fundalul. Numere mici = fundal foarte blurat.
+                </Text>
+              </Flex>
+              <Flex gap={3} align="start">
+                <Icon as={TbZoomIn} boxSize={5} mt={0.5} color="blue.400" />
+                <Text fontSize="sm">
+                  <strong>Distanța focală</strong> — cât de "apropiat" vezi
+                  subiectul.
+                </Text>
+              </Flex>
+              <Flex gap={3} align="start">
+                <Icon as={TbRuler} boxSize={5} mt={0.5} color="blue.400" />
+                <Text fontSize="sm">
+                  <strong>Distanța până la subiect</strong> — cât de departe
+                  este subiectul de cameră.
+                </Text>
+              </Flex>
+              <Flex gap={3} align="start">
+                <Icon as={FiCamera} boxSize={5} mt={0.5} color="blue.400" />
+                <Text fontSize="sm">
+                  <strong>Senzor</strong> — formatul camerei tale (Full Frame,
+                  APS-C, etc.)
+                </Text>
+              </Flex>
+            </Stack>
+          </ModalBody>
+          <ModalFooter>
+            <Button colorScheme="blue" onClick={dismissOnboarding} minH="44px" w="100%">
+              Am înțeles
+            </Button>
+          </ModalFooter>
+        </ModalContent>
+      </Modal>
 
       {/* ── Fișă de Platou (vizibilă doar la print) ── */}
       <Box className="print-sheet" p={8} color="black" bg="white">

@@ -17,3 +17,24 @@ body {
 svg text {
   fill: currentColor;
 }
+
+/* ── Responsive pentru mobil (Prioritate 4) ── */
+@media (max-width: 768px) {
+  body {
+    font-size: 16px;
+  }
+
+  /* Touch targets generoase pentru butoane și input-uri */
+  button,
+  input,
+  select,
+  [role="slider"] {
+    min-height: 44px;
+  }
+
+  /* Thumb-ul slider-ului Chakra, mărit pentru control mai ușor cu degetul */
+  .chakra-slider__thumb {
+    width: 28px !important;
+    height: 28px !important;
+  }
+}
