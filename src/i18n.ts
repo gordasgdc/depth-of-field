@@ -116,6 +116,8 @@ export const translations: Record<Lang, Dict> = {
     onboardingFocal: 'Distanța focală — cât de "apropiat" vezi subiectul.',
     onboardingDistance: "Distanța până la subiect — cât de departe este subiectul de cameră.",
     onboardingSensor: "Senzor — formatul camerei tale (Full Frame, APS-C, etc.)",
+    onboardingInfluencers:
+      "Cine influențează profunzimea? — sub controale găsești un panou dedicat, cu tabel comparativ și un sfat practic, actualizate live.",
     onboardingButton: "Am înțeles",
 
     fisaDePlatou: "Fișă de Platou",
@@ -232,6 +234,8 @@ export const translations: Record<Lang, Dict> = {
     onboardingFocal: 'Focal length — how "close" you see the subject.',
     onboardingDistance: "Distance to subject — how far the subject is from the camera.",
     onboardingSensor: "Sensor — your camera's format (Full Frame, APS-C, etc.)",
+    onboardingInfluencers:
+      "Who influences depth of field? — below the controls you'll find a dedicated panel, with a comparison table and a practical tip, both updated live.",
     onboardingButton: "Got it",
 
     fisaDePlatou: "Spec Sheet",
@@ -348,6 +352,8 @@ export const translations: Record<Lang, Dict> = {
     onboardingFocal: 'Distancia focal — cuán "cerca" ves al sujeto.',
     onboardingDistance: "Distancia al sujeto — a qué distancia está el sujeto de la cámara.",
     onboardingSensor: "Sensor — el formato de tu cámara (Full Frame, APS-C, etc.)",
+    onboardingInfluencers:
+      "¿Qué influye en la profundidad de campo? — debajo de los controles hay un panel dedicado, con una tabla comparativa y un consejo práctico, actualizados en vivo.",
     onboardingButton: "Entendido",
 
     fisaDePlatou: "Ficha de Rodaje",

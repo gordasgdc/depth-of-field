@@ -42,12 +42,16 @@ import {
   AccordionIcon,
   SlideFade,
 } from "@chakra-ui/react";
-import { TbRuler, TbAperture, TbZoomIn, TbUser, TbMountain, TbBuildingSkyscraper, TbDeviceFloppy, TbX } from "react-icons/tb";
+import { TbRuler, TbAperture, TbZoomIn, TbUser, TbMountain, TbBuildingSkyscraper, TbDeviceFloppy, TbX, TbBulb } from "react-icons/tb";
 import { FiGithub, FiCamera, FiSun, FiMoon, FiPlay, FiHeart, FiLink, FiPrinter } from "react-icons/fi";
 import { toImperial, toMetric } from "./utils/units";
 import { buildNativeSelectStyles } from "./selectStyles";
 
 import PhotographyGraphic, { SUBJECTS } from "./PhotographyGraphic";
+import InfluencersPanel from "./components/InfluencersPanel";
+import ComparisonTable from "./components/ComparisonTable";
+import PracticalTip from "./components/PracticalTip";
+import { useInfluencers } from "./hooks/useInfluencers";
 import {
   Lang,
   LANGUAGES,
@@ -686,6 +690,13 @@ const cropFactor = isCustomSensor
 
   const t = (key: string, vars?: Record<string, string | number>) =>
     translate(language, key, vars);
+
+  // ── Cine influențează profunzimea de câmp? (100% client-side) ──
+  const { tipKey: influencerTipKey } = useInfluencers(
+    aperture,
+    focalLengthInMillimeters,
+    distanceToSubjectInInches
+  );
 
   const labelStyles = {
     mt: "2",
@@ -1574,6 +1585,23 @@ const cropFactor = isCustomSensor
           </Flex>
         </Box>
 
+        {/* ── Cine influențează profunzimea de câmp? ── */}
+        <InfluencersPanel language={language} apertureUnitPrefix={apertureUnitPrefix} />
+        <ComparisonTable
+          language={language}
+          apertureUnitPrefix={apertureUnitPrefix}
+          aperture={aperture}
+          focalLengthInMillimeters={focalLengthInMillimeters}
+          distanceLabel={convertUnits(distanceToSubjectInInches, 0)}
+        />
+        <PracticalTip
+          language={language}
+          tipKey={influencerTipKey}
+          apertureLabel={`${apertureUnitPrefix}/${aperture}`}
+          focalLengthInMillimeters={focalLengthInMillimeters}
+          distanceLabel={convertUnits(distanceToSubjectInInches, 0)}
+        />
+
         {/* Rack Focus Simulator */}
         <Box pt={6}>
           <Flex gap={2} align="center" mb={2}>
@@ -1905,6 +1933,10 @@ const cropFactor = isCustomSensor
               <Flex gap={3} align="start">
                 <Icon as={FiCamera} boxSize={5} mt={0.5} color="blue.400" />
                 <Text fontSize="sm">{t("onboardingSensor")}</Text>
+              </Flex>
+              <Flex gap={3} align="start">
+                <Icon as={TbBulb} boxSize={5} mt={0.5} color="purple.400" />
+                <Text fontSize="sm">{t("onboardingInfluencers")}</Text>
               </Flex>
             </Stack>
           </ModalBody>
