@@ -48,6 +48,20 @@ import { toImperial, toMetric } from "./utils/units";
 import { buildNativeSelectStyles } from "./selectStyles";
 
 import PhotographyGraphic, { SUBJECTS } from "./PhotographyGraphic";
+import {
+  Lang,
+  LANGUAGES,
+  translate,
+  SYSTEM_LABELS,
+  CAPTURE_MODE_LABELS,
+  SENSOR_LABELS,
+  SUBJECT_LABELS,
+  DOF_CHARACTER_LABELS,
+  COMMON_SETUP_LABELS,
+  VIDEO_WEDDING_SETUP_LABELS,
+  QUICK_SCENARIO_LABELS,
+  FAQ_TRANSLATIONS,
+} from "./i18n";
 
 import Telephoto from "./assets/100-400.png";
 import Fisheye from "./assets/fishey.png";
@@ -276,40 +290,8 @@ const VIDEO_QUICK_SCENARIOS: QuickScenario[] = [
   },
 ];
 
-// Întrebări frecvente — Prioritate 5. Explicații mai extinse, gândite ca
-// material didactic pentru studenți la fotografie/film.
-const FAQ_ITEMS: { question: string; answer: string }[] = [
-  {
-    question: "Ce este profunzimea de câmp?",
-    answer:
-      "Profunzimea de câmp (DoF) este zona din fața și din spatele subiectului focalizat care rămâne acceptabil de clară în imagine. O profunzime mică izolează subiectul de fundal (bokeh puternic), iar o profunzime mare menține totul clar, de la prim-plan până în depărtare. Cei trei factori care o controlează sunt diafragma, distanța focală și distanța până la subiect — exact cele trei controale din partea de sus a acestei aplicații.",
-  },
-  {
-    question: "Care e diferența dintre f-stop și T-stop?",
-    answer:
-      "Ambele descriu cât de „deschisă” e diafragma unui obiectiv, dar măsoară lucruri diferite. F-stop-ul (f/) e un calcul pur geometric: raportul dintre distanța focală și diametrul deschiderii diafragmei — nu ține cont de câtă lumină se pierde efectiv în interiorul obiectivului. T-stop-ul (T) măsoară lumina transmisă real până la senzor, după ce se scad pierderile din lentile și acoperiri optice; de-asta obiectivele de cinema sunt marcate în T, nu în f — pe platou contează expunerea exactă, nu doar geometria. Important pentru profunzimea de câmp: DoF-ul depinde de deschiderea fizică reală a diafragmei (aceeași bază de calcul ca la f-stop), nu de cât de multă lumină ajunge la senzor. Practic, la aceeași valoare numerică, un obiectiv marcat T oferă o expunere mai previzibilă între obiective diferite, dar profunzimea de câmp rezultată e comparabilă cu un f-stop de aceeași valoare. De-asta, în modul Video al aplicației, cifra e afișată ca T/valoare, ca terminologie corectă pentru platou, deși calculul de profunzime de câmp folosește aceeași formulă ca la f-stop.",
-  },
-  {
-    question: "Ce diafragmă să aleg pentru un portret?",
-    answer:
-      "Pentru portrete, o diafragmă deschisă (f/1.4–f/2.8) izolează frumos subiectul de fundal. La mai multe persoane în cadru, urcă spre f/4–f/5.6 ca toată lumea să rămână clară, mai ales dacă nu sunt la aceeași distanță de cameră. Regula practică: cu cât grupul e mai mare sau mai adânc (persoane la distanțe diferite de cameră), cu atât ai nevoie de o diafragmă mai închisă ca să prinzi pe toată lumea în zona clară.",
-  },
-  {
-    question: "Ce înseamnă distanța hiperfocală?",
-    answer:
-      "Distanța hiperfocală este punctul de focalizare care maximizează profunzimea de câmp: dacă focalizezi acolo, tot ce se află de la jumătatea acestei distanțe până la infinit rămâne clar. E utilă la peisaje sau filmări unde nu vrei să mai atingi focusul — de exemplu la filmări run-and-gun de nuntă, unde nu ai timp să reajustezi focusul între cadre. Diafragme mai închise și distanțe focale mai mici (wide) apropie hiperfocala de cameră, ceea ce lărgește zona pe care o poți filma fără să mai atingi focusul.",
-  },
-  {
-    question: "Ce format de senzor să folosesc?",
-    answer:
-      "Senzorii mai mari (Full Frame, format mediu) oferă profunzime de câmp mai mică la aceeași diafragmă și distanță focală — buni pentru izolarea subiectului. Senzorii mai mici (APS-C, Micro Four Thirds, telefon) oferă profunzime mai mare, utilă când vrei ca totul să fie clar. Motivul e cercul de confuzie: pe un senzor mic, aceeași imagine e mărită mai mult la vizionare, deci punctele neclare devin vizibile mai repede — de-asta senzorii mici „par” să aibă profunzime de câmp mai mare, deși optica de bază e aceeași.",
-  },
-  {
-    question: "De ce apare avertismentul de difracție?",
-    answer:
-      "Când închizi foarte mult diafragma (f-stop mare), lumina începe să se difracteze la marginea deschiderii, iar imaginea își pierde din claritate — chiar dacă totul e teoretic „în focus”. Pragul la care apare acest efect depinde de senzor: senzorii mai mici ating limita de difracție la diafragme mai deschise decât cei mari. Aplicația calculează acest prag automat și te avertizează când ești peste el, ca să știi când mai multă profunzime de câmp vine cu prețul unei imagini ușor mai moi.",
-  },
-];
+// Întrebările frecvente (Prioritate 5) sunt acum definite, pe cele 3 limbi,
+// în FAQ_TRANSLATIONS din ./i18n.ts.
 
 // Presetări pentru camere video reale, folosite frecvent la filmări de nuntă.
 // Fiecare presetare mapează camera pe formatul ei real de senzor (în modul video),
@@ -501,6 +483,10 @@ function App() {
       return v === "Video" ? "Video" : "Foto";
     }
   );
+  const [language, setLanguage] = useState<Lang>(() => {
+    const v = getInitialParam("lang");
+    return v === "en" || v === "es" ? v : "ro";
+  });
   const [sensor, setSensor] = useState(
     () => getInitialParam("sensor") || "Full Frame (35mm)"
   );
@@ -656,16 +642,30 @@ const cropFactor = isCustomSensor
 
   // DoF use-case character based on total depth
   const totalDofFeet = totalDofInches / 12;
-  const dofCharacter =
+  const dofCharacterKey =
     totalDofFeet < 0.5
-      ? { label: "Macro / Produs", color: "purple" }
+      ? "Macro / Produs"
       : totalDofFeet < 3
-      ? { label: "Portret", color: "blue" }
+      ? "Portret"
       : totalDofFeet < 10
-      ? { label: "Grup / Eveniment", color: "teal" }
+      ? "Grup / Eveniment"
       : totalDofFeet < 30
-      ? { label: "Stradă / Arhitectură", color: "green" }
-      : { label: "Peisaj", color: "gray" };
+      ? "Stradă / Arhitectură"
+      : "Peisaj";
+  const dofCharacterColor =
+    totalDofFeet < 0.5
+      ? "purple"
+      : totalDofFeet < 3
+      ? "blue"
+      : totalDofFeet < 10
+      ? "teal"
+      : totalDofFeet < 30
+      ? "green"
+      : "gray";
+  const dofCharacter = {
+    label: DOF_CHARACTER_LABELS[dofCharacterKey][language],
+    color: dofCharacterColor,
+  };
 
   // ── Theme-aware colors 
   const cardBg = useColorModeValue("white", "gray.700");
@@ -683,6 +683,9 @@ const cropFactor = isCustomSensor
   // În Video, diafragma se exprimă în T-stop (transmisie reală de lumină,
   // corectată pentru pierderile din obiectiv) — de-asta apare "T" în loc de "f".
   const apertureUnitPrefix = captureMode === "Video" ? "T" : "f";
+
+  const t = (key: string, vars?: Record<string, string | number>) =>
+    translate(language, key, vars);
 
   const labelStyles = {
     mt: "2",
@@ -797,8 +800,8 @@ const cropFactor = isCustomSensor
     const next = [newPreset, ...savedPresets].slice(0, 3);
     persistPresets(next);
     toast({
-      title: "Combinație salvată!",
-      description: `${newPreset.name} — o poți încărca oricând mai jos.`,
+      title: t("toastSaved"),
+      description: t("toastSavedDesc", { name: newPreset.name }),
       status: "success",
       duration: 2500,
       isClosable: true,
@@ -835,7 +838,7 @@ const cropFactor = isCustomSensor
       prevHyperfocalRoundedRef.current !== roundedMeters
     ) {
       setHyperfocalBadge(
-        `Distanța hiperfocală s-a mutat la ${convertUnits(
+        `${t("hyperfocalBadgePrefix")} ${convertUnits(
           hyperFocalDistanceInMM / 25.4,
           1
         )}`
@@ -858,6 +861,7 @@ const cropFactor = isCustomSensor
     params.set("system", system);
     params.set("sensor", sensor);
     params.set("captureMode", captureMode);
+    params.set("lang", language);
     if (sensor === "Custom") {
       params.set("sw", String(customSensorWidth));
       params.set("sh", String(customSensorHeight));
@@ -874,13 +878,14 @@ const cropFactor = isCustomSensor
     customSensorWidth,
     customSensorHeight,
     captureMode,
+    language,
   ]);
 
   function copyShareLink() {
     navigator.clipboard.writeText(window.location.href).then(() => {
       toast({
-        title: "Link copiat!",
-        description: "Trimite-l cuiva ca să vadă exact acest setup.",
+        title: t("toastLinkCopiat"),
+        description: t("toastLinkCopiatDesc"),
         status: "success",
         duration: 2500,
         isClosable: true,
@@ -907,9 +912,11 @@ const cropFactor = isCustomSensor
         py={2}
         borderBottom="1px"
         borderColor={borderColor}
+        wrap="wrap"
+        gap={2}
       >
         <Text fontSize="sm" color={mutedText}>
-          Simulator de Profunzime a Câmpului · de{" "}
+          {t("appTitleBy")}{" "}
           <a
             href="https://github.com/gordasgdc"
             target="_blank"
@@ -919,21 +926,32 @@ const cropFactor = isCustomSensor
             Cristi Gordas
           </a>
         </Text>
-        <Tooltip
-          label={
-            colorMode === "dark"
-              ? "Comută la modul luminos"
-              : "Comută la modul întunecat"
-          }
-        >
-          <IconButton
-            aria-label="Comută modul de culoare"
-            icon={colorMode === "dark" ? <FiSun /> : <FiMoon />}
+        <Flex align="center" gap={2}>
+          <Select
+            aria-label={t("languageSelectorAria")}
             size="sm"
-            variant="ghost"
-            onClick={toggleColorMode}
-          />
-        </Tooltip>
+            w="auto"
+            value={language}
+            onChange={(e) => setLanguage(e.target.value as Lang)}
+          >
+            {LANGUAGES.map((l) => (
+              <option key={l.code} value={l.code}>
+                {l.label}
+              </option>
+            ))}
+          </Select>
+          <Tooltip
+            label={colorMode === "dark" ? t("toggleLight") : t("toggleDark")}
+          >
+            <IconButton
+              aria-label={t("toggleColorAria")}
+              icon={colorMode === "dark" ? <FiSun /> : <FiMoon />}
+              size="sm"
+              variant="ghost"
+              onClick={toggleColorMode}
+            />
+          </Tooltip>
+        </Flex>
       </Flex>
 
       {/* ── Scenarii Comune (Prioritate 1) ── */}
@@ -946,7 +964,7 @@ const cropFactor = isCustomSensor
             <Stack direction="row" spacing={4}>
               {CAPTURE_MODES.map((m) => (
                 <Radio value={m} key={m} colorScheme="purple">
-                  {m}
+                  {CAPTURE_MODE_LABELS[m][language]}
                 </Radio>
               ))}
             </Stack>
@@ -961,7 +979,7 @@ const cropFactor = isCustomSensor
           letterSpacing="wider"
           mb={2}
         >
-          Scenarii Comune · {captureMode}
+          {t("scenariiComune")} · {CAPTURE_MODE_LABELS[captureMode][language]}
         </Text>
         <SimpleGrid columns={{ base: 2, md: 4 }} spacing={2}>
           {activeQuickScenarios.map((scenario) => (
@@ -976,7 +994,7 @@ const cropFactor = isCustomSensor
               fontSize="sm"
               leftIcon={<Icon as={scenario.icon} boxSize={4} />}
             >
-              {scenario.name}
+              {QUICK_SCENARIO_LABELS[scenario.name]?.[language] ?? scenario.name}
             </Button>
           ))}
         </SimpleGrid>
@@ -985,7 +1003,7 @@ const cropFactor = isCustomSensor
       <Box p={2} pt={4}>
         {compareMode && (
           <Text fontSize="xs" fontWeight="semibold" color={mutedText} mb={1}>
-            Setup Principal — {sensor}
+            {t("setupPrincipal", { sensor: SENSOR_LABELS[sensor]?.[language] ?? sensor })}
           </Text>
         )}
         <PhotographyGraphic
@@ -1009,7 +1027,7 @@ const cropFactor = isCustomSensor
         <FormControl display="flex" alignItems="center" justifyContent="center" gap={2}>
           <Icon as={TbZoomIn} boxSize={4} color={mutedText} />
           <FormLabel htmlFor="compare-mode" mb="0" fontSize="sm">
-            Mod Comparație (două formate de senzor)
+            {t("modComparatie")}
           </FormLabel>
           <Switch
             id="compare-mode"
@@ -1023,7 +1041,7 @@ const cropFactor = isCustomSensor
           <Box mt={3}>
             <Flex justify="center" align="center" gap={2} mb={2}>
               <Text fontSize="sm" color={mutedText}>
-                Compară cu:
+                {t("compareWith")}
               </Text>
               <Select
                 size="sm"
@@ -1035,14 +1053,16 @@ const cropFactor = isCustomSensor
                   .filter(([key]) => key !== sensor)
                   .map(([key]) => (
                     <option key={key} value={key}>
-                      {key}
+                      {SENSOR_LABELS[key]?.[language] ?? key}
                     </option>
                   ))}
               </Select>
             </Flex>
             <Text fontSize="xs" fontWeight="semibold" color={mutedText} mb={1}>
-              Comparație — {compareSensor} (aceeași distanță focală și
-              diafragmă, câmp vizual {compareVerticalFieldOfView.toFixed(0)}°)
+              {t("compareLabel", {
+                sensor: SENSOR_LABELS[compareSensor]?.[language] ?? compareSensor,
+                fov: compareVerticalFieldOfView.toFixed(0),
+              })}
             </Text>
             <PhotographyGraphic
               distanceToSubjectInInches={distanceToSubjectInInches}
@@ -1067,7 +1087,7 @@ const cropFactor = isCustomSensor
                 textAlign="center"
               >
                 <Text fontSize="xs" color={mutedText}>
-                  Total DoF — {sensor}
+                  {t("totalDofFor", { sensor: SENSOR_LABELS[sensor]?.[language] ?? sensor })}
                 </Text>
                 <Text fontWeight="bold" fontSize="sm">
                   {isInfinityFar ? "∞" : convertUnits(totalDofInches, 0)}
@@ -1082,7 +1102,9 @@ const cropFactor = isCustomSensor
                 textAlign="center"
               >
                 <Text fontSize="xs" color={mutedText}>
-                  Total DoF — {compareSensor}
+                  {t("totalDofFor", {
+                    sensor: SENSOR_LABELS[compareSensor]?.[language] ?? compareSensor,
+                  })}
                 </Text>
                 <Text fontWeight="bold" fontSize="sm">
                   {compareIsInfinityFar
@@ -1100,21 +1122,21 @@ const cropFactor = isCustomSensor
         <SimpleGrid columns={4} spacing={3}>
           {[
             {
-              label: "Focalizare Apropiată",
+              label: t("focalizareApropiata"),
               value: convertUnits(nearFocalPointInInches, 0),
             },
             {
-              label: "Focalizare Îndepărtată",
+              label: t("focalizareIndepartata"),
               value: isInfinityFar
                 ? "∞"
                 : convertUnits(farFocalPointInInches, 0),
             },
             {
-              label: "Profunzime Totală",
+              label: t("profunzimeTotala"),
               value: isInfinityFar ? "∞" : convertUnits(totalDofInches, 0),
             },
             {
-              label: "Hiperfocală",
+              label: t("hiperfocala"),
               value: convertUnits(hyperFocalDistanceInInches, 0),
             },
           ].map(({ label, value }) => (
@@ -1156,8 +1178,10 @@ const cropFactor = isCustomSensor
           <Tooltip
             label={
               canSetHyperfocal
-                ? "Focalizează la distanța hiperfocală — tot ce e de la jumătatea acestei distanțe până la ∞ va fi clar"
-                : `Hiperfocala (${convertUnits(hyperFocalDistanceInInches, 0)}) depășește limitele scenei`
+                ? t("tooltipSetHyperfocalOk")
+                : t("tooltipSetHyperfocalBad", {
+                    value: convertUnits(hyperFocalDistanceInInches, 0),
+                  })
             }
           >
             <Button
@@ -1171,7 +1195,7 @@ const cropFactor = isCustomSensor
                 )
               }
             >
-              Setează Hiperfocala
+              {t("seteazaHiperfocala")}
             </Button>
           </Tooltip>
         </Flex>
@@ -1180,7 +1204,7 @@ const cropFactor = isCustomSensor
         <FormControl display="flex" alignItems="center" mt={4} justifyContent="center">
           <Icon as={FiHeart} boxSize={4} color="pink.400" mr={2} />
           <FormLabel htmlFor="wedding-mode" mb="0" fontSize="sm">
-            Mod Nuntă (setează și uită)
+            {t("modNunta")}
           </FormLabel>
           <Switch
             id="wedding-mode"
@@ -1201,28 +1225,21 @@ const cropFactor = isCustomSensor
             fontSize="sm"
             textAlign="center"
           >
-            {isInfinityFar ? (
-              <>
-                La <strong>{apertureUnitPrefix}/{aperture}</strong>, {focalLengthInMillimeters}mm, poți
-                filma liber de la{" "}
-                <strong>{convertUnits(nearFocalPointInInches, 0)}</strong> până la{" "}
-                <strong>infinit</strong> — totul rămâne clar, fără să mai atingi
-                focusul.
-              </>
-            ) : (
-              <>
-                La <strong>{apertureUnitPrefix}/{aperture}</strong>, {focalLengthInMillimeters}mm, tot ce
-                se află între{" "}
-                <strong>{convertUnits(nearFocalPointInInches, 0)}</strong> și{" "}
-                <strong>{convertUnits(farFocalPointInInches, 0)}</strong> va fi clar.
-                Cât timp mirii rămân în acest interval, poți filma fără să mai
-                atingi focusul manual.
-              </>
-            )}
+            {isInfinityFar
+              ? t("weddingFreeInfinity", {
+                  ap: `${apertureUnitPrefix}/${aperture}`,
+                  focal: focalLengthInMillimeters,
+                  near: convertUnits(nearFocalPointInInches, 0),
+                })
+              : t("weddingFreeRange", {
+                  ap: `${apertureUnitPrefix}/${aperture}`,
+                  focal: focalLengthInMillimeters,
+                  near: convertUnits(nearFocalPointInInches, 0),
+                  far: convertUnits(farFocalPointInInches, 0),
+                })}
             <br />
             <Text as="span" fontSize="xs" color={mutedText}>
-              Sfat: setează focusul la distanța hiperfocală (butonul de mai sus)
-              pentru cea mai largă zonă de siguranță posibilă.
+              {t("weddingTip")}
             </Text>
           </Box>
         )}
@@ -1234,8 +1251,8 @@ const cropFactor = isCustomSensor
           <Flex gap={2} align="center">
             <Flex w="20%" justify="flex-end" align="center" gap={1.5}>
               <Icon as={TbRuler} boxSize={4} color={mutedText} />
-              <Text fontSize="sm">Unități</Text>
-              <InfoTip label="Alege sistemul de unități pentru afișarea distanțelor: Imperial (ft/in) sau Metric (cm)." />
+              <Text fontSize="sm">{t("unitati")}</Text>
+              <InfoTip label={t("unitatiTooltip")} />
             </Flex>
             <Box flexGrow={1}>
               <RadioGroup
@@ -1245,7 +1262,7 @@ const cropFactor = isCustomSensor
                 <Stack direction="row">
                   {SYSTEMS.map((s) => (
                     <Radio value={s} key={s} colorScheme="blue">
-                      {s}
+                      {SYSTEM_LABELS[s][language]}
                     </Radio>
                   ))}
                 </Stack>
@@ -1260,9 +1277,9 @@ const cropFactor = isCustomSensor
             <Flex w="20%" justify="flex-end" align="center" gap={1.5}>
               <Icon as={TbRuler} boxSize={4} color={mutedText} />
               <Text fontSize="sm" textAlign="right">
-                Distanță ({system === "Imperial" ? "ft" : "m"})
+                {t("distanta")} ({system === "Imperial" ? "ft" : "m"})
               </Text>
-              <InfoTip label="Distanța până la subiectul pe care vrei să-l focalizezi. Cu cât te apropii mai mult, cu atât profunzimea de câmp devine mai mică." />
+              <InfoTip label={t("distantaTooltip")} />
             </Flex>
             <Box flexGrow={1}>
               <Slider
@@ -1341,9 +1358,9 @@ const cropFactor = isCustomSensor
             <Flex w="20%" justify="flex-end" align="center" gap={1.5}>
               <Icon as={TbZoomIn} boxSize={4} color={mutedText} />
               <Text fontSize="sm" textAlign="right">
-                Distanța Focală (mm)
+                {t("distantaFocala")}
               </Text>
-              <InfoTip label="Distanță focală mai mare = câmp vizual mai îngust și profunzime de câmp mai mică, la aceeași diafragmă." />
+              <InfoTip label={t("distantaFocalaTooltip")} />
             </Flex>
             <Box flexGrow={1}>
               <Slider
@@ -1374,7 +1391,7 @@ const cropFactor = isCustomSensor
                 <img src={Fisheye} alt="Fisheye lens" style={{ height: 50 }} />
                 {sensor !== "Full Frame (35mm)" && (
                   <Text fontSize="xs" color={mutedText}>
-                    ≈ {equivalentFocalLength}mm echivalent cadru complet
+                    {t("echivalentCadru", { value: equivalentFocalLength })}
                   </Text>
                 )}
                 <img
@@ -1393,13 +1410,13 @@ const cropFactor = isCustomSensor
             <Flex w="20%" justify="flex-end" align="center" gap={1.5}>
               <Icon as={TbAperture} boxSize={4} color={mutedText} />
               <Text fontSize="sm">
-                {captureMode === "Video" ? "Diafragmă (T-stop aprox.)" : "Diafragmă"}
+                {captureMode === "Video" ? t("diafragmaVideo") : t("diafragma")}
               </Text>
               <InfoTip
                 label={
                   captureMode === "Video"
-                    ? "T-stop mic (deschis) = profunzime de câmp mai mică, dar mai multă lumină ajunge la senzor. T-stop mare (închis) = profunzime mai mare, dar mai puțină lumină. Spre deosebire de f-stop, T-stop măsoară lumina transmisă efectiv prin obiectiv, corectată pentru pierderile optice — de-asta obiectivele cinema sunt marcate în T, nu în f."
-                    : "Diafragmă mai deschisă (f mic) = profunzime de câmp mai mică, dar mai multă lumină. Diafragmă închisă (f mare) = profunzime mai mare, dar mai puțină lumină."
+                    ? t("diafragmaTooltipVideo")
+                    : t("diafragmaTooltip")
                 }
               />
             </Flex>
@@ -1435,8 +1452,9 @@ const cropFactor = isCustomSensor
                 fontSize="xs"
                 rounded="md"
               >
-                ⚠ Difracția poate reduce claritatea peste {apertureUnitPrefix}/
-                {diffractionLimitFStop.toFixed(1)} pe acest senzor
+                {t("difractieWarning", {
+                  value: `${apertureUnitPrefix}/${diffractionLimitFStop.toFixed(1)}`,
+                })}
               </Badge>
             </Flex>
           )}
@@ -1447,7 +1465,7 @@ const cropFactor = isCustomSensor
           {isCustomSensor && (
   <Box mt={2}>
     <Flex gap={2} align="center" mb={1}>
-      <Text fontSize="xs" w="80px" color={mutedText}>Lățime (mm)</Text>
+      <Text fontSize="xs" w="80px" color={mutedText}>{t("latimeMm")}</Text>
       <input
         type="number"
         value={customSensorWidth}
@@ -1456,7 +1474,7 @@ const cropFactor = isCustomSensor
       />
     </Flex>
     <Flex gap={2} align="center" mb={1}>
-      <Text fontSize="xs" w="80px" color={mutedText}>Înălțime (mm)</Text>
+      <Text fontSize="xs" w="80px" color={mutedText}>{t("inaltimeMm")}</Text>
       <input
         type="number"
         value={customSensorHeight}
@@ -1477,9 +1495,9 @@ const cropFactor = isCustomSensor
               >
                 <Icon as={FiCamera} boxSize={4} color={mutedText} />
                 <Text fontSize="sm" textAlign="right">
-                  Senzor
+                  {t("senzor")}
                 </Text>
-                <InfoTip label="Senzorii mai mici au, de regulă, profunzime de câmp mai mare la aceeași distanță focală și diafragmă — de-asta un telefon are totul clar, iar un obiectiv full-frame poate izola subiectul." />
+                <InfoTip label={t("senzorTooltip")} />
               </Flex>
               <Box flexGrow={1}>
                 <Select
@@ -1492,7 +1510,7 @@ const cropFactor = isCustomSensor
                   _active={nativeSelectStyles._active}
                   sx={nativeSelectStyles.sx}
                   value={sensor}
-                  placeholder="Senzor"
+                  placeholder={t("senzorPlaceholder")}
                   onChange={(evt) => {
                     if (!evt?.target?.value) {
                       return;
@@ -1502,10 +1520,10 @@ const cropFactor = isCustomSensor
                 >
                   {Object.entries(CIRCLES_OF_CONFUSION).map(([key]) => (
                     <option key={key} value={key}>
-                      {key}
+                      {SENSOR_LABELS[key]?.[language] ?? key}
                     </option>
                   ))}
-                  <option value="Custom">Personalizat</option>
+                  <option value="Custom">{t("senzorPersonalizat")}</option>
                 </Select>
               </Box>
             </Flex>
@@ -1521,9 +1539,9 @@ const cropFactor = isCustomSensor
               >
                 <Icon as={TbUser} boxSize={4} color={mutedText} />
                 <Text fontSize="sm" textAlign="right">
-                  Subiect
+                  {t("subiect")}
                 </Text>
-                <InfoTip label="Alege un subiect de referință, ca să vizualizezi mai ușor scara scenei și unde cade zona de focus pe el." />
+                <InfoTip label={t("subiectTooltip")} />
               </Flex>
               <Box flexGrow={1}>
                 <Select
@@ -1536,7 +1554,7 @@ const cropFactor = isCustomSensor
                   _active={nativeSelectStyles._active}
                   sx={nativeSelectStyles.sx}
                   value={subject}
-                  placeholder="Subiect"
+                  placeholder={t("subiectPlaceholder")}
                   onChange={(evt) => {
                     if (
                       SUBJECTS[evt?.target?.value as keyof typeof SUBJECTS]
@@ -1547,7 +1565,7 @@ const cropFactor = isCustomSensor
                 >
                   {Object.entries(SUBJECTS).map(([key]) => (
                     <option key={key} value={key}>
-                      {key}
+                      {SUBJECT_LABELS[key]?.[language] ?? key}
                     </option>
                   ))}
                 </Select>
@@ -1561,18 +1579,16 @@ const cropFactor = isCustomSensor
           <Flex gap={2} align="center" mb={2}>
             <Icon as={FiPlay} boxSize={4} color={mutedText} />
             <Text fontSize="sm" fontWeight="semibold">
-              Simulare Trecere de Focus (Rack Focus)
+              {t("rackFocusTitle")}
             </Text>
           </Flex>
           <Text fontSize="xs" color={mutedText} mb={3}>
-            Setează o distanță de start și una finală, apoi apasă Play ca să
-            vezi cum se schimbă profunzimea de câmp în timpul unei treceri de
-            focus — util pentru exersarea unui rack focus manual la nuntă.
+            {t("rackFocusDesc")}
           </Text>
           <Flex gap={3} align="center" wrap="wrap">
             <Flex align="center" gap={2}>
               <Text fontSize="xs" color={mutedText}>
-                Start
+                {t("rackStart")}
               </Text>
               <input
                 type="number"
@@ -1590,7 +1606,7 @@ const cropFactor = isCustomSensor
             </Flex>
             <Flex align="center" gap={2}>
               <Text fontSize="xs" color={mutedText}>
-                Final
+                {t("rackEnd")}
               </Text>
               <input
                 type="number"
@@ -1610,10 +1626,10 @@ const cropFactor = isCustomSensor
               variant="outline"
               leftIcon={<Icon as={FiPlay} />}
               isLoading={isRacking}
-              loadingText="Rulează..."
+              loadingText={t("rackLoading")}
               onClick={startRackFocus}
             >
-              Redă tranziția
+              {t("rackPlay")}
             </Button>
           </Flex>
         </Box>
@@ -1626,8 +1642,8 @@ const cropFactor = isCustomSensor
             <Tooltip
               label={
                 savedPresets.length >= 3
-                  ? "Ai deja 3 presetări salvate — cea mai veche va fi înlocuită"
-                  : "Salvează combinația curentă de senzor / focală / diafragmă / distanță"
+                  ? t("salveazaCombinatiaFull3")
+                  : t("salveazaCombinatiaFull")
               }
             >
               <Button
@@ -1638,7 +1654,7 @@ const cropFactor = isCustomSensor
                 leftIcon={<Icon as={TbDeviceFloppy} boxSize={4} />}
                 onClick={saveCurrentPreset}
               >
-                Salvează această combinație
+                {t("salveazaCombinatia")}
               </Button>
             </Tooltip>
           </Flex>
@@ -1654,7 +1670,7 @@ const cropFactor = isCustomSensor
                 letterSpacing="wider"
                 mb={2}
               >
-                Presetările Mele
+                {t("presetariMele")}
               </Text>
               <Wrap justify="center" spacing={2}>
                 {savedPresets.map((preset) => (
@@ -1673,10 +1689,10 @@ const cropFactor = isCustomSensor
                         variant="ghost"
                         onClick={() => loadPreset(preset)}
                       >
-                        {preset.name} · {preset.sensor}
+                        {preset.name} · {SENSOR_LABELS[preset.sensor]?.[language] ?? preset.sensor}
                       </Button>
                       <IconButton
-                        aria-label="Șterge presetarea"
+                        aria-label={t("stergePresetare")}
                         icon={<Icon as={TbX} boxSize={3.5} />}
                         size="sm"
                         minH="44px"
@@ -1706,7 +1722,7 @@ const cropFactor = isCustomSensor
               letterSpacing="wider"
               mb={3}
             >
-              Presetări Rapide
+              {t("presetariRapide")}
             </Text>
             <Wrap justify="center" spacing={2}>
               {COMMON_SETUPS.map((setup) => (
@@ -1722,7 +1738,7 @@ const cropFactor = isCustomSensor
                       setDistanceToSubjectInInches(setup.idealDistance);
                     }}
                   >
-                    {setup.name}
+                    {COMMON_SETUP_LABELS[setup.name]?.[language] ?? setup.name}
                   </Button>
                 </WrapItem>
               ))}
@@ -1742,12 +1758,12 @@ const cropFactor = isCustomSensor
               letterSpacing="wider"
               mb={3}
             >
-              Presetări Video / Nuntă (camere reale)
+              {t("presetariVideoNunta")}
             </Text>
             <Wrap justify="center" spacing={2}>
               {VIDEO_WEDDING_SETUPS.map((setup) => (
                 <WrapItem key={setup.name}>
-                  <Tooltip label={setup.note}>
+                  <Tooltip label={VIDEO_WEDDING_SETUP_LABELS[setup.name]?.note[language] ?? setup.note}>
                     <Button
                       size="sm"
                       variant="outline"
@@ -1765,7 +1781,7 @@ const cropFactor = isCustomSensor
                         setDistanceToSubjectInInches(setup.idealDistance);
                       }}
                     >
-                      {setup.name}
+                      {VIDEO_WEDDING_SETUP_LABELS[setup.name]?.name[language] ?? setup.name}
                     </Button>
                   </Tooltip>
                 </WrapItem>
@@ -1785,21 +1801,21 @@ const cropFactor = isCustomSensor
             letterSpacing="wider"
             mb={3}
           >
-            Întrebări Frecvente
+            {t("faqTitle")}
           </Text>
           <Accordion allowToggle>
-            {FAQ_ITEMS.map((item) => (
-              <AccordionItem key={item.question} borderColor={borderColor}>
+            {FAQ_TRANSLATIONS.map((item) => (
+              <AccordionItem key={item.id} borderColor={borderColor}>
                 <h2>
                   <AccordionButton minH="44px" _hover={{ bg: cardBg }}>
                     <Box as="span" flex="1" textAlign="left" fontSize="sm" fontWeight="medium">
-                      {item.question}
+                      {item.question[language]}
                     </Box>
                     <AccordionIcon />
                   </AccordionButton>
                 </h2>
                 <AccordionPanel pb={4} fontSize="sm" color={mutedText}>
-                  {item.answer}
+                  {item.answer[language]}
                 </AccordionPanel>
               </AccordionItem>
             ))}
@@ -1817,7 +1833,7 @@ const cropFactor = isCustomSensor
             onClick={() => window.print()}
             mr={2}
           >
-            Printează Fișa
+            {t("printeazaFisa")}
           </Button>
           <Button
             size="sm"
@@ -1828,7 +1844,7 @@ const cropFactor = isCustomSensor
             onClick={copyShareLink}
             mr={2}
           >
-            Copiază Link
+            {t("copiazaLink")}
           </Button>
           <Button
             as="a"
@@ -1841,10 +1857,10 @@ const cropFactor = isCustomSensor
             color={mutedText}
             _hover={{ color: colorMode === "dark" ? "gray.200" : "gray.800" }}
           >
-            Vezi pe GitHub
+            {t("veziPeGithub")}
           </Button>
           <Text fontSize="xs" color={mutedText} mt={2}>
-            Creat de{" "}
+            {t("creatDe")}{" "}
             <a
               href="https://github.com/gordasgdc"
               target="_blank"
@@ -1867,46 +1883,34 @@ const cropFactor = isCustomSensor
       >
         <ModalOverlay />
         <ModalContent mx={4}>
-          <ModalHeader>Bine ai venit</ModalHeader>
+          <ModalHeader>{t("onboardingTitle")}</ModalHeader>
           <ModalCloseButton />
           <ModalBody>
             <Text fontSize="sm" mb={4} color={mutedText}>
-              Câteva explicații rapide pentru controalele principale:
+              {t("onboardingIntro")}
             </Text>
             <Stack spacing={3}>
               <Flex gap={3} align="start">
                 <Icon as={TbAperture} boxSize={5} mt={0.5} color="blue.400" />
-                <Text fontSize="sm">
-                  <strong>Diafragma (f-stop)</strong> — controlează cât de
-                  blurat este fundalul. Numere mici = fundal foarte blurat.
-                </Text>
+                <Text fontSize="sm">{t("onboardingAperture")}</Text>
               </Flex>
               <Flex gap={3} align="start">
                 <Icon as={TbZoomIn} boxSize={5} mt={0.5} color="blue.400" />
-                <Text fontSize="sm">
-                  <strong>Distanța focală</strong> — cât de "apropiat" vezi
-                  subiectul.
-                </Text>
+                <Text fontSize="sm">{t("onboardingFocal")}</Text>
               </Flex>
               <Flex gap={3} align="start">
                 <Icon as={TbRuler} boxSize={5} mt={0.5} color="blue.400" />
-                <Text fontSize="sm">
-                  <strong>Distanța până la subiect</strong> — cât de departe
-                  este subiectul de cameră.
-                </Text>
+                <Text fontSize="sm">{t("onboardingDistance")}</Text>
               </Flex>
               <Flex gap={3} align="start">
                 <Icon as={FiCamera} boxSize={5} mt={0.5} color="blue.400" />
-                <Text fontSize="sm">
-                  <strong>Senzor</strong> — formatul camerei tale (Full Frame,
-                  APS-C, etc.)
-                </Text>
+                <Text fontSize="sm">{t("onboardingSensor")}</Text>
               </Flex>
             </Stack>
           </ModalBody>
           <ModalFooter>
             <Button colorScheme="blue" onClick={dismissOnboarding} minH="44px" w="100%">
-              Am înțeles
+              {t("onboardingButton")}
             </Button>
           </ModalFooter>
         </ModalContent>
@@ -1915,39 +1919,42 @@ const cropFactor = isCustomSensor
       {/* ── Fișă de Platou (vizibilă doar la print) ── */}
       <Box className="print-sheet" p={8} color="black" bg="white">
         <Text fontSize="2xl" fontWeight="bold" mb={1}>
-          Fișă de Platou
+          {t("fisaDePlatou")}
         </Text>
         <Text fontSize="sm" mb={6}>
-          Simulator de Profunzime a Câmpului · generat {new Date().toLocaleDateString("ro-RO")}
+          {t("fisaDePlatouSub", {
+            date: new Date().toLocaleDateString(
+              language === "ro" ? "ro-RO" : language === "es" ? "es-ES" : "en-US"
+            ),
+          })}
         </Text>
         <SimpleGrid columns={2} spacing={4} maxW="500px">
-          <Text fontWeight="semibold">Mod:</Text>
-          <Text>{captureMode}</Text>
-          <Text fontWeight="semibold">Senzor:</Text>
-          <Text>{sensor}</Text>
-          <Text fontWeight="semibold">Distanță Focală:</Text>
+          <Text fontWeight="semibold">{t("mod")}</Text>
+          <Text>{CAPTURE_MODE_LABELS[captureMode][language]}</Text>
+          <Text fontWeight="semibold">{t("senzorLabel")}</Text>
+          <Text>{SENSOR_LABELS[sensor]?.[language] ?? sensor}</Text>
+          <Text fontWeight="semibold">{t("distantaFocalaLabel")}</Text>
           <Text>{focalLengthInMillimeters}mm</Text>
-          <Text fontWeight="semibold">Diafragmă:</Text>
+          <Text fontWeight="semibold">{t("diafragmaLabel")}</Text>
           <Text>{apertureUnitPrefix}/{aperture}</Text>
-          <Text fontWeight="semibold">Distanță Subiect:</Text>
+          <Text fontWeight="semibold">{t("distantaSubiectLabel")}</Text>
           <Text>{convertUnits(distanceToSubjectInInches, 0)}</Text>
         </SimpleGrid>
         <Divider my={4} borderColor="gray.400" />
         <SimpleGrid columns={2} spacing={4} maxW="500px">
-          <Text fontWeight="semibold">Focalizare Apropiată:</Text>
+          <Text fontWeight="semibold">{t("focalizareApropiataLabel")}</Text>
           <Text>{convertUnits(nearFocalPointInInches, 0)}</Text>
-          <Text fontWeight="semibold">Focalizare Îndepărtată:</Text>
+          <Text fontWeight="semibold">{t("focalizareIndepartataLabel")}</Text>
           <Text>
             {isInfinityFar ? "∞" : convertUnits(farFocalPointInInches, 0)}
           </Text>
-          <Text fontWeight="semibold">Profunzime Totală:</Text>
+          <Text fontWeight="semibold">{t("profunzimeTotalaLabel")}</Text>
           <Text>{isInfinityFar ? "∞" : convertUnits(totalDofInches, 0)}</Text>
-          <Text fontWeight="semibold">Distanță Hiperfocală:</Text>
+          <Text fontWeight="semibold">{t("distantaHiperfocalaLabel")}</Text>
           <Text>{convertUnits(hyperFocalDistanceInInches, 0)}</Text>
         </SimpleGrid>
         <Text fontSize="xs" mt={8} color="gray.600">
-          Generat cu Simulator de Profunzime a Câmpului — Cristi Gordas ·
-          gordasgdc.github.io/depth-of-field
+          {t("fisaFooter")}
         </Text>
       </Box>
     </>
