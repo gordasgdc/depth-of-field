@@ -276,27 +276,38 @@ const VIDEO_QUICK_SCENARIOS: QuickScenario[] = [
   },
 ];
 
-// Întrebări frecvente — Prioritate 5.
+// Întrebări frecvente — Prioritate 5. Explicații mai extinse, gândite ca
+// material didactic pentru studenți la fotografie/film.
 const FAQ_ITEMS: { question: string; answer: string }[] = [
   {
     question: "Ce este profunzimea de câmp?",
     answer:
-      "Profunzimea de câmp (DoF) este zona din fața și din spatele subiectului focalizat care rămâne acceptabil de clară în imagine. O profunzime mică izolează subiectul de fundal (bokeh puternic), iar o profunzime mare menține totul clar, de la prim-plan până în depărtare.",
+      "Profunzimea de câmp (DoF) este zona din fața și din spatele subiectului focalizat care rămâne acceptabil de clară în imagine. O profunzime mică izolează subiectul de fundal (bokeh puternic), iar o profunzime mare menține totul clar, de la prim-plan până în depărtare. Cei trei factori care o controlează sunt diafragma, distanța focală și distanța până la subiect — exact cele trei controale din partea de sus a acestei aplicații.",
+  },
+  {
+    question: "Care e diferența dintre f-stop și T-stop?",
+    answer:
+      "Ambele descriu cât de „deschisă” e diafragma unui obiectiv, dar măsoară lucruri diferite. F-stop-ul (f/) e un calcul pur geometric: raportul dintre distanța focală și diametrul deschiderii diafragmei — nu ține cont de câtă lumină se pierde efectiv în interiorul obiectivului. T-stop-ul (T) măsoară lumina transmisă real până la senzor, după ce se scad pierderile din lentile și acoperiri optice; de-asta obiectivele de cinema sunt marcate în T, nu în f — pe platou contează expunerea exactă, nu doar geometria. Important pentru profunzimea de câmp: DoF-ul depinde de deschiderea fizică reală a diafragmei (aceeași bază de calcul ca la f-stop), nu de cât de multă lumină ajunge la senzor. Practic, la aceeași valoare numerică, un obiectiv marcat T oferă o expunere mai previzibilă între obiective diferite, dar profunzimea de câmp rezultată e comparabilă cu un f-stop de aceeași valoare. De-asta, în modul Video al aplicației, cifra e afișată ca T/valoare, ca terminologie corectă pentru platou, deși calculul de profunzime de câmp folosește aceeași formulă ca la f-stop.",
   },
   {
     question: "Ce diafragmă să aleg pentru un portret?",
     answer:
-      "Pentru portrete, o diafragmă deschisă (f/1.4–f/2.8) izolează frumos subiectul de fundal. La mai multe persoane în cadru, urcă spre f/4–f/5.6 ca toată lumea să rămână clară, mai ales dacă nu sunt la aceeași distanță de cameră.",
+      "Pentru portrete, o diafragmă deschisă (f/1.4–f/2.8) izolează frumos subiectul de fundal. La mai multe persoane în cadru, urcă spre f/4–f/5.6 ca toată lumea să rămână clară, mai ales dacă nu sunt la aceeași distanță de cameră. Regula practică: cu cât grupul e mai mare sau mai adânc (persoane la distanțe diferite de cameră), cu atât ai nevoie de o diafragmă mai închisă ca să prinzi pe toată lumea în zona clară.",
   },
   {
     question: "Ce înseamnă distanța hiperfocală?",
     answer:
-      "Distanța hiperfocală este punctul de focalizare care maximizează profunzimea de câmp: dacă focalizezi acolo, tot ce se află de la jumătatea acestei distanțe până la infinit rămâne clar. E utilă la peisaje sau filmări unde nu vrei să mai atingi focusul.",
+      "Distanța hiperfocală este punctul de focalizare care maximizează profunzimea de câmp: dacă focalizezi acolo, tot ce se află de la jumătatea acestei distanțe până la infinit rămâne clar. E utilă la peisaje sau filmări unde nu vrei să mai atingi focusul — de exemplu la filmări run-and-gun de nuntă, unde nu ai timp să reajustezi focusul între cadre. Diafragme mai închise și distanțe focale mai mici (wide) apropie hiperfocala de cameră, ceea ce lărgește zona pe care o poți filma fără să mai atingi focusul.",
   },
   {
     question: "Ce format de senzor să folosesc?",
     answer:
-      "Senzorii mai mari (Full Frame, format mediu) oferă profunzime de câmp mai mică la aceeași diafragmă și distanță focală — buni pentru izolarea subiectului. Senzorii mai mici (APS-C, Micro Four Thirds, telefon) oferă profunzime mai mare, utilă când vrei ca totul să fie clar.",
+      "Senzorii mai mari (Full Frame, format mediu) oferă profunzime de câmp mai mică la aceeași diafragmă și distanță focală — buni pentru izolarea subiectului. Senzorii mai mici (APS-C, Micro Four Thirds, telefon) oferă profunzime mai mare, utilă când vrei ca totul să fie clar. Motivul e cercul de confuzie: pe un senzor mic, aceeași imagine e mărită mai mult la vizionare, deci punctele neclare devin vizibile mai repede — de-asta senzorii mici „par” să aibă profunzime de câmp mai mare, deși optica de bază e aceeași.",
+  },
+  {
+    question: "De ce apare avertismentul de difracție?",
+    answer:
+      "Când închizi foarte mult diafragma (f-stop mare), lumina începe să se difracteze la marginea deschiderii, iar imaginea își pierde din claritate — chiar dacă totul e teoretic „în focus”. Pragul la care apare acest efect depinde de senzor: senzorii mai mici ating limita de difracție la diafragme mai deschise decât cei mari. Aplicația calculează acest prag automat și te avertizează când ești peste el, ca să știi când mai multă profunzime de câmp vine cu prețul unei imagini ușor mai moi.",
   },
 ];
 
@@ -669,6 +680,10 @@ const cropFactor = isCustomSensor
   const activeQuickScenarios =
     captureMode === "Video" ? VIDEO_QUICK_SCENARIOS : PHOTO_QUICK_SCENARIOS;
 
+  // În Video, diafragma se exprimă în T-stop (transmisie reală de lumină,
+  // corectată pentru pierderile din obiectiv) — de-asta apare "T" în loc de "f".
+  const apertureUnitPrefix = captureMode === "Video" ? "T" : "f";
+
   const labelStyles = {
     mt: "2",
     ml: "-2.5",
@@ -772,7 +787,7 @@ const cropFactor = isCustomSensor
   function saveCurrentPreset() {
     const newPreset: SavedPreset = {
       id: `${Date.now()}`,
-      name: `${focalLengthInMillimeters}mm · f/${aperture}`,
+      name: `${focalLengthInMillimeters}mm · ${apertureUnitPrefix}/${aperture}`,
       distanceToSubjectInInches,
       focalLengthInMillimeters,
       aperture,
@@ -981,6 +996,7 @@ const cropFactor = isCustomSensor
           subject={subject as keyof typeof SUBJECTS}
           focalLength={focalLengthInMillimeters}
           aperture={aperture}
+          apertureUnitPrefix={apertureUnitPrefix}
           system={system}
           verticalFieldOfView={verticalFieldOfView}
           textColor={graphicTextColor}
@@ -1036,6 +1052,7 @@ const cropFactor = isCustomSensor
               subject={subject as keyof typeof SUBJECTS}
               focalLength={focalLengthInMillimeters}
               aperture={aperture}
+              apertureUnitPrefix={apertureUnitPrefix}
               system={system}
               verticalFieldOfView={compareVerticalFieldOfView}
               textColor={graphicTextColor}
@@ -1186,7 +1203,7 @@ const cropFactor = isCustomSensor
           >
             {isInfinityFar ? (
               <>
-                La <strong>f/{aperture}</strong>, {focalLengthInMillimeters}mm, poți
+                La <strong>{apertureUnitPrefix}/{aperture}</strong>, {focalLengthInMillimeters}mm, poți
                 filma liber de la{" "}
                 <strong>{convertUnits(nearFocalPointInInches, 0)}</strong> până la{" "}
                 <strong>infinit</strong> — totul rămâne clar, fără să mai atingi
@@ -1194,7 +1211,7 @@ const cropFactor = isCustomSensor
               </>
             ) : (
               <>
-                La <strong>f/{aperture}</strong>, {focalLengthInMillimeters}mm, tot ce
+                La <strong>{apertureUnitPrefix}/{aperture}</strong>, {focalLengthInMillimeters}mm, tot ce
                 se află între{" "}
                 <strong>{convertUnits(nearFocalPointInInches, 0)}</strong> și{" "}
                 <strong>{convertUnits(farFocalPointInInches, 0)}</strong> va fi clar.
@@ -1378,7 +1395,13 @@ const cropFactor = isCustomSensor
               <Text fontSize="sm">
                 {captureMode === "Video" ? "Diafragmă (T-stop aprox.)" : "Diafragmă"}
               </Text>
-              <InfoTip label="Diafragmă mai deschisă (f mic) = profunzime de câmp mai mică, dar mai multă lumină. Diafragmă închisă (f mare) = profunzime mai mare, dar mai puțină lumină." />
+              <InfoTip
+                label={
+                  captureMode === "Video"
+                    ? "T-stop mic (deschis) = profunzime de câmp mai mică, dar mai multă lumină ajunge la senzor. T-stop mare (închis) = profunzime mai mare, dar mai puțină lumină. Spre deosebire de f-stop, T-stop măsoară lumina transmisă efectiv prin obiectiv, corectată pentru pierderile optice — de-asta obiectivele cinema sunt marcate în T, nu în f."
+                    : "Diafragmă mai deschisă (f mic) = profunzime de câmp mai mică, dar mai multă lumină. Diafragmă închisă (f mare) = profunzime mai mare, dar mai puțină lumină."
+                }
+              />
             </Flex>
             <Box flexGrow={1}>
               <Slider
@@ -1412,7 +1435,7 @@ const cropFactor = isCustomSensor
                 fontSize="xs"
                 rounded="md"
               >
-                ⚠ Difracția poate reduce claritatea peste f/
+                ⚠ Difracția poate reduce claritatea peste {apertureUnitPrefix}/
                 {diffractionLimitFStop.toFixed(1)} pe acest senzor
               </Badge>
             </Flex>
@@ -1898,12 +1921,14 @@ const cropFactor = isCustomSensor
           Simulator de Profunzime a Câmpului · generat {new Date().toLocaleDateString("ro-RO")}
         </Text>
         <SimpleGrid columns={2} spacing={4} maxW="500px">
+          <Text fontWeight="semibold">Mod:</Text>
+          <Text>{captureMode}</Text>
           <Text fontWeight="semibold">Senzor:</Text>
           <Text>{sensor}</Text>
           <Text fontWeight="semibold">Distanță Focală:</Text>
           <Text>{focalLengthInMillimeters}mm</Text>
           <Text fontWeight="semibold">Diafragmă:</Text>
-          <Text>f/{aperture}</Text>
+          <Text>{apertureUnitPrefix}/{aperture}</Text>
           <Text fontWeight="semibold">Distanță Subiect:</Text>
           <Text>{convertUnits(distanceToSubjectInInches, 0)}</Text>
         </SimpleGrid>

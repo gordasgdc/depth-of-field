@@ -155,6 +155,7 @@ export default function PhotographyGraphic({
   subject,
   focalLength,
   aperture,
+  apertureUnitPrefix = "f",
   system,
   verticalFieldOfView,
   textColor,
@@ -166,6 +167,7 @@ export default function PhotographyGraphic({
   farDistanceInInches: number;
   focalLength: number;
   aperture: number;
+  apertureUnitPrefix?: string;
   system: string;
   verticalFieldOfView: number;
   textColor?: string;
@@ -326,7 +328,7 @@ export default function PhotographyGraphic({
         fontWeight="bold"
         textAnchor="end"
       >
-        {focalLength}mm f/{aperture}
+        {focalLength}mm {apertureUnitPrefix}/{aperture}
       </text>
 
       {shouldShowVerticalLabels && renderVerticalDistanceLabels(textFill)}
