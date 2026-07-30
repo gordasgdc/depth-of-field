@@ -41,6 +41,19 @@ const HumanAtDesk = () => (
   />
 );
 
+// Reprezintă un cuplu (miri) — două siluete umane alăturate, utile ca reper
+// de scară pentru cadre de nuntă (discurs, ceremonie, primul dans etc.)
+const BrideAndGroom = () => (
+  <g>
+    <g transform="translate(-15 0)">
+      <Human />
+    </g>
+    <g transform="translate(15 0)">
+      <Human />
+    </g>
+  </g>
+);
+
 // SUBJECTS is shared by App and this component; keeping it here avoids moving
 // the large inline SVG paths into a separate module.
 // eslint-disable-next-line react-refresh/only-export-components
@@ -52,6 +65,10 @@ export const SUBJECTS = {
   "Persoană la Birou": {
     graphic: HumanAtDesk,
     height: 54,
+  },
+  "Cuplu de Miri": {
+    graphic: BrideAndGroom,
+    height: 72,
   },
   "Câine Mic": {
     graphic: SmallDog,

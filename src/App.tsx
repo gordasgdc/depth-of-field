@@ -29,7 +29,7 @@ import {
   Tooltip,
 } from "@chakra-ui/react";
 import { TbRuler, TbAperture, TbZoomIn, TbUser } from "react-icons/tb";
-import { FiGithub, FiCamera, FiSun, FiMoon, FiPlay, FiHeart, FiLink } from "react-icons/fi";
+import { FiGithub, FiCamera, FiSun, FiMoon, FiPlay, FiHeart, FiLink, FiPrinter } from "react-icons/fi";
 import { toImperial, toMetric } from "./utils/units";
 import { buildNativeSelectStyles } from "./selectStyles";
 
@@ -56,10 +56,15 @@ const CIRCLES_OF_CONFUSION: Record<
     sensorHeight: 7.3,
     cropFactor: 6.1
   },
-  "35mm (cadru complet)": {
+  "Full Frame (35mm)": {
     coc: 0.029,
     sensorHeight: 24,
     cropFactor: 1.0
+  },
+  "Super 35 (Cine)": {
+    coc: 0.019,
+    sensorHeight: 13.8,
+    cropFactor: 1.54
   },
   "APS-C": {
     coc: 0.019,
@@ -116,28 +121,28 @@ const COMMON_SETUPS: {
     focalLength: 28,
     aperture: 1.4,
     idealDistance: 48,
-    sensor: "35mm (cadru complet)",
+    sensor: "Full Frame (35mm)",
   },
   {
     name: "FF - 35mm",
     focalLength: 35,
     aperture: 1.4,
     idealDistance: 60,
-    sensor: "35mm (cadru complet)",
+    sensor: "Full Frame (35mm)",
   },
   {
     name: "FF - 50mm",
     focalLength: 50,
     aperture: 1.8,
     idealDistance: 72,
-    sensor: "35mm (cadru complet)",
+    sensor: "Full Frame (35mm)",
   },
   {
     name: "FF - 70mm",
     focalLength: 70,
     aperture: 2.8,
     idealDistance: 96,
-    sensor: "35mm (cadru complet)",
+    sensor: "Full Frame (35mm)",
   },
   {
     name: "6x6 - 80mm",
@@ -175,7 +180,7 @@ const VIDEO_WEDDING_SETUPS: {
     focalLength: 35,
     aperture: 1.8,
     idealDistance: 60,
-    sensor: "35mm (cadru complet)",
+    sensor: "Full Frame (35mm)",
     note: "Cadru complet, fără crop video — ideal pentru discurs sau ceremonie",
   },
   {
@@ -184,7 +189,7 @@ const VIDEO_WEDDING_SETUPS: {
     focalLength: 50,
     aperture: 1.4,
     idealDistance: 72,
-    sensor: "35mm (cadru complet)",
+    sensor: "Full Frame (35mm)",
     note: "Portret cu bokeh puternic — bun pentru primii ai mirilor",
   },
   {
@@ -211,7 +216,7 @@ const VIDEO_WEDDING_SETUPS: {
     focalLength: 35,
     aperture: 1.8,
     idealDistance: 60,
-    sensor: "35mm (cadru complet)",
+    sensor: "Full Frame (35mm)",
     note: "Cadru complet — bun echilibru între bokeh și zonă de focus",
   },
   {
@@ -220,7 +225,7 @@ const VIDEO_WEDDING_SETUPS: {
     focalLength: 50,
     aperture: 1.2,
     idealDistance: 72,
-    sensor: "35mm (cadru complet)",
+    sensor: "Full Frame (35mm)",
     note: "Bokeh extrem — profunzime de câmp foarte mică, focus critic",
   },
   {
@@ -229,8 +234,8 @@ const VIDEO_WEDDING_SETUPS: {
     focalLength: 35,
     aperture: 2.0,
     idealDistance: 60,
-    sensor: "APS-C",
-    note: "Senzor Super 35, apropiat ca dimensiune de APS-C",
+    sensor: "Super 35 (Cine)",
+    note: "Senzor Super 35, standard pentru camere cine",
   },
 ];
 
@@ -272,6 +277,51 @@ function getInitialParam(key: string): string | null {
   return new URLSearchParams(window.location.search).get(key);
 }
 
+// Calculează profunzimea de câmp pentru o combinație independentă de
+// distanță focală / diafragmă / senzor — folosită de Modul Comparație,
+// ca să poți vedea, la aceeași distanță focală și diafragmă, diferența
+// dintre două formate de senzor (ex: Full Frame vs. APS-C).
+type DofResult = {
+  hyperFocalDistanceInMM: number;
+  depthOfFieldNearLimitInMM: number;
+  depthOfFieldFarLimitInMM: number;
+};
+
+function computeDof(
+  focalLengthInMillimeters: number,
+  aperture: number,
+  sensorKey: string,
+  distanceToSubjectInMM: number,
+  customSensorWidth: number,
+  customSensorHeight: number
+): DofResult {
+  const isCustomSensor = sensorKey === "Custom";
+  const customCocCalculated =
+    Math.sqrt(customSensorWidth ** 2 + customSensorHeight ** 2) / 1500;
+  const circleOfConfusionInMillimeters = isCustomSensor
+    ? customCocCalculated
+    : CIRCLES_OF_CONFUSION[sensorKey].coc;
+
+  const hyperFocalDistanceInMM =
+    focalLengthInMillimeters +
+    (focalLengthInMillimeters * focalLengthInMillimeters) /
+      (aperture * circleOfConfusionInMillimeters);
+  const depthOfFieldFarLimitInMM =
+    (hyperFocalDistanceInMM * distanceToSubjectInMM) /
+    (hyperFocalDistanceInMM -
+      (distanceToSubjectInMM - focalLengthInMillimeters));
+  const depthOfFieldNearLimitInMM =
+    (hyperFocalDistanceInMM * distanceToSubjectInMM) /
+    (hyperFocalDistanceInMM +
+      (distanceToSubjectInMM - focalLengthInMillimeters));
+
+  return {
+    hyperFocalDistanceInMM,
+    depthOfFieldNearLimitInMM,
+    depthOfFieldFarLimitInMM,
+  };
+}
+
 function App() {
   const [distanceToSubjectInInches, setDistanceToSubjectInInches] = useState(
     () => {
@@ -297,7 +347,7 @@ function App() {
     return v === "Metric" ? "Metric" : "Imperial";
   });
   const [sensor, setSensor] = useState(
-    () => getInitialParam("sensor") || "35mm (cadru complet)"
+    () => getInitialParam("sensor") || "Full Frame (35mm)"
   );
   const [customSensorWidth, setCustomSensorWidth] = useState(() => {
     const v = getInitialParam("sw");
@@ -312,6 +362,8 @@ function App() {
   const [rackEndInInches, setRackEndInInches] = useState(120);
   const [isRacking, setIsRacking] = useState(false);
   const rackAnimationRef = useRef<number | null>(null);
+  const [compareMode, setCompareMode] = useState(false);
+  const [compareSensor, setCompareSensor] = useState("APS-C");
   const toast = useToast();
 
   const { colorMode, toggleColorMode } = useColorMode();
@@ -371,6 +423,42 @@ const cropFactor = isCustomSensor
     depthOfFieldFarLimitInMM <= 0;
   const totalDofInches = farFocalPointInInches - nearFocalPointInInches;
   const canSetHyperfocal = hyperFocalDistanceInInches <= farDistanceInInches;
+
+  // ── Mod Comparație: calculează DoF pentru un al doilea senzor, la aceeași
+  // distanță focală, diafragmă și distanță — ca să vezi clar diferența
+  // introdusă doar de formatul senzorului.
+  const compareDof = compareMode
+    ? computeDof(
+        focalLengthInMillimeters,
+        aperture,
+        compareSensor,
+        distanceToSubjectInMM,
+        customSensorWidth,
+        customSensorHeight
+      )
+    : null;
+  const compareNearFocalPointInInches = compareDof
+    ? clamp(compareDof.depthOfFieldNearLimitInMM / 25.4, 0, farDistanceInInches)
+    : 0;
+  let compareFarFocalPointInInches = compareDof
+    ? clamp(compareDof.depthOfFieldFarLimitInMM / 25.4, 0, farDistanceInInches)
+    : 0;
+  if (compareDof && compareFarFocalPointInInches < compareNearFocalPointInInches) {
+    compareFarFocalPointInInches = farDistanceInInches;
+  }
+  const compareIsInfinityFar = compareDof
+    ? compareDof.depthOfFieldFarLimitInMM / 25.4 > farDistanceInInches ||
+      compareDof.depthOfFieldFarLimitInMM <= 0
+    : false;
+  const compareTotalDofInches =
+    compareFarFocalPointInInches - compareNearFocalPointInInches;
+  const compareSensorHeight = (() => {
+    if (compareSensor === "Custom") return customSensorHeight;
+    return CIRCLES_OF_CONFUSION[compareSensor]?.sensorHeight ?? sensorHeight;
+  })();
+  const compareVerticalFieldOfView =
+    (2 * Math.atan(compareSensorHeight / 2 / focalLengthInMillimeters) * 180) /
+    Math.PI;
 
   // 35mm equivalent focal length (only relevant when not on full frame)
   const equivalentFocalLength = Math.round(
@@ -511,6 +599,14 @@ const cropFactor = isCustomSensor
 
   return (
     <>
+      <style>{`
+        .print-sheet { display: none; }
+        @media print {
+          .app-shell { display: none !important; }
+          .print-sheet { display: block !important; }
+        }
+      `}</style>
+      <Box className="app-shell">
       <Flex
         bg={topBarBg}
         justify="space-between"
@@ -549,6 +645,11 @@ const cropFactor = isCustomSensor
       </Flex>
 
       <Box p={2} pt={4}>
+        {compareMode && (
+          <Text fontSize="xs" fontWeight="semibold" color={mutedText} mb={1}>
+            Setup Principal — {sensor}
+          </Text>
+        )}
         <PhotographyGraphic
           distanceToSubjectInInches={distanceToSubjectInInches}
           nearFocalPointInInches={nearFocalPointInInches}
@@ -562,6 +663,96 @@ const cropFactor = isCustomSensor
           textColor={graphicTextColor}
           onChangeDistance={(val) => setDistanceToSubjectInInches(val)}
         />
+      </Box>
+
+      {/* ── Mod Comparație ── */}
+      <Box px={6} pt={1}>
+        <FormControl display="flex" alignItems="center" justifyContent="center" gap={2}>
+          <Icon as={TbZoomIn} boxSize={4} color={mutedText} />
+          <FormLabel htmlFor="compare-mode" mb="0" fontSize="sm">
+            Mod Comparație (două formate de senzor)
+          </FormLabel>
+          <Switch
+            id="compare-mode"
+            colorScheme="purple"
+            isChecked={compareMode}
+            onChange={(e) => setCompareMode(e.target.checked)}
+          />
+        </FormControl>
+
+        {compareMode && (
+          <Box mt={3}>
+            <Flex justify="center" align="center" gap={2} mb={2}>
+              <Text fontSize="sm" color={mutedText}>
+                Compară cu:
+              </Text>
+              <Select
+                size="sm"
+                w="auto"
+                value={compareSensor}
+                onChange={(e) => setCompareSensor(e.target.value)}
+              >
+                {Object.entries(CIRCLES_OF_CONFUSION)
+                  .filter(([key]) => key !== sensor)
+                  .map(([key]) => (
+                    <option key={key} value={key}>
+                      {key}
+                    </option>
+                  ))}
+              </Select>
+            </Flex>
+            <Text fontSize="xs" fontWeight="semibold" color={mutedText} mb={1}>
+              Comparație — {compareSensor} (aceeași distanță focală și
+              diafragmă, câmp vizual {compareVerticalFieldOfView.toFixed(0)}°)
+            </Text>
+            <PhotographyGraphic
+              distanceToSubjectInInches={distanceToSubjectInInches}
+              nearFocalPointInInches={compareNearFocalPointInInches}
+              farFocalPointInInches={compareFarFocalPointInInches}
+              farDistanceInInches={farDistanceInInches}
+              subject={subject as keyof typeof SUBJECTS}
+              focalLength={focalLengthInMillimeters}
+              aperture={aperture}
+              system={system}
+              verticalFieldOfView={compareVerticalFieldOfView}
+              textColor={graphicTextColor}
+            />
+            <SimpleGrid columns={2} spacing={3} mt={2}>
+              <Box
+                p={2}
+                rounded="md"
+                bg={cardBg}
+                border="1px"
+                borderColor={borderColor}
+                textAlign="center"
+              >
+                <Text fontSize="xs" color={mutedText}>
+                  Total DoF — {sensor}
+                </Text>
+                <Text fontWeight="bold" fontSize="sm">
+                  {isInfinityFar ? "∞" : convertUnits(totalDofInches, 0)}
+                </Text>
+              </Box>
+              <Box
+                p={2}
+                rounded="md"
+                bg={cardBg}
+                border="1px"
+                borderColor={borderColor}
+                textAlign="center"
+              >
+                <Text fontSize="xs" color={mutedText}>
+                  Total DoF — {compareSensor}
+                </Text>
+                <Text fontWeight="bold" fontSize="sm">
+                  {compareIsInfinityFar
+                    ? "∞"
+                    : convertUnits(compareTotalDofInches, 0)}
+                </Text>
+              </Box>
+            </SimpleGrid>
+          </Box>
+        )}
       </Box>
 
       {/* ── DoF Stats Panel ── */}
@@ -794,7 +985,7 @@ const cropFactor = isCustomSensor
             <Box flexGrow={1}>
               <Flex justify="space-between" align="center">
                 <img src={Fisheye} alt="Fisheye lens" style={{ height: 50 }} />
-                {sensor !== "35mm (cadru complet)" && (
+                {sensor !== "Full Frame (35mm)" && (
                   <Text fontSize="xs" color={mutedText}>
                     ≈ {equivalentFocalLength}mm echivalent cadru complet
                   </Text>
@@ -1115,6 +1306,17 @@ const cropFactor = isCustomSensor
           <Button
             size="sm"
             variant="ghost"
+            leftIcon={<Icon as={FiPrinter} />}
+            color={mutedText}
+            _hover={{ color: colorMode === "dark" ? "gray.200" : "gray.800" }}
+            onClick={() => window.print()}
+            mr={2}
+          >
+            Printează Fișa
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
             leftIcon={<Icon as={FiLink} />}
             color={mutedText}
             _hover={{ color: colorMode === "dark" ? "gray.200" : "gray.800" }}
@@ -1148,6 +1350,44 @@ const cropFactor = isCustomSensor
             </a>
           </Text>
         </Box>
+      </Box>
+      </Box>
+
+      {/* ── Fișă de Platou (vizibilă doar la print) ── */}
+      <Box className="print-sheet" p={8} color="black" bg="white">
+        <Text fontSize="2xl" fontWeight="bold" mb={1}>
+          Fișă de Platou
+        </Text>
+        <Text fontSize="sm" mb={6}>
+          Simulator de Profunzime a Câmpului · generat {new Date().toLocaleDateString("ro-RO")}
+        </Text>
+        <SimpleGrid columns={2} spacing={4} maxW="500px">
+          <Text fontWeight="semibold">Senzor:</Text>
+          <Text>{sensor}</Text>
+          <Text fontWeight="semibold">Distanță Focală:</Text>
+          <Text>{focalLengthInMillimeters}mm</Text>
+          <Text fontWeight="semibold">Diafragmă:</Text>
+          <Text>f/{aperture}</Text>
+          <Text fontWeight="semibold">Distanță Subiect:</Text>
+          <Text>{convertUnits(distanceToSubjectInInches, 0)}</Text>
+        </SimpleGrid>
+        <Divider my={4} borderColor="gray.400" />
+        <SimpleGrid columns={2} spacing={4} maxW="500px">
+          <Text fontWeight="semibold">Focalizare Apropiată:</Text>
+          <Text>{convertUnits(nearFocalPointInInches, 0)}</Text>
+          <Text fontWeight="semibold">Focalizare Îndepărtată:</Text>
+          <Text>
+            {isInfinityFar ? "∞" : convertUnits(farFocalPointInInches, 0)}
+          </Text>
+          <Text fontWeight="semibold">Profunzime Totală:</Text>
+          <Text>{isInfinityFar ? "∞" : convertUnits(totalDofInches, 0)}</Text>
+          <Text fontWeight="semibold">Distanță Hiperfocală:</Text>
+          <Text>{convertUnits(hyperFocalDistanceInInches, 0)}</Text>
+        </SimpleGrid>
+        <Text fontSize="xs" mt={8} color="gray.600">
+          Generat cu Simulator de Profunzime a Câmpului — Cristi Gordas ·
+          gordasgdc.github.io/depth-of-field
+        </Text>
       </Box>
     </>
   );

@@ -17,6 +17,10 @@ Pe lângă simulatorul clasic de foto, aplicația include:
 - **Mod Nuntă (setează și uită)** — un switch care traduce distanța apropiată/îndepărtată calculată într-un sfat practic în limbaj simplu: "la acest f-stop și distanță, poți filma liber între X și Y metri, fără să mai atingi focusul".
 - **Partajare prin link** — orice combinație de cameră/obiectiv/distanță se salvează automat în URL. Butonul „Copiază Link" din subsol copiază adresa curentă, gata de trimis unui student cu un setup exact.
 - **Tooltip-uri educaționale** — un mic „?" lângă fiecare control (Unități, Distanță, Distanță Focală, Diafragmă, Senzor, Subiect) explică pe scurt de ce contează parametrul respectiv.
+- **Mod Comparație** — pune două formate de senzor față în față (ex. Full Frame vs. APS-C vs. Super 35), la aceeași distanță focală și diafragmă, ca să vezi vizual diferența de profunzime de câmp.
+- **Fișă de Platou (printabilă)** — butonul „Printează Fișa" generează o pagină curată, gata de print, cu toate setările curente (senzor, distanță focală, diafragmă, focalizare apropiată/îndepărtată, hiperfocală) — utilă de dus pe platou.
+- **Cuplu de Miri** — un nou subiect de referință (două siluete alăturate), pentru cadre de nuntă unde vrei să măsori profunzimea de câmp pe doi oameni în loc de unul.
+- **Senzori extinși** — pe lângă Full Frame, APS-C, Micro Four Thirds și Format Mediu, s-a adăugat și **Super 35 (Cine)**, standardul folosit de camerele de cinema digital (ex. Canon C70).
 
 ## Cum să pornești proiectul
 
