@@ -462,9 +462,34 @@ export const SUBJECT_LABELS: Record<string, Dict> = {
     es: "Persona en un Escritorio",
   },
   "Cuplu de Miri": { ro: "Cuplu de Miri", en: "Bride and Groom", es: "Pareja de Novios" },
+  "Grup de Oameni": { ro: "Grup de Oameni", en: "Group of People", es: "Grupo de Personas" },
+  "Dansatori": { ro: "Dansatori", en: "Dancers", es: "Bailarines" },
+  "Invitat la Masă": { ro: "Invitat la Masă", en: "Guest at Table", es: "Invitado en Mesa" },
+  "Inel de Logodnă": {
+    ro: "Inel de Logodnă",
+    en: "Engagement Ring",
+    es: "Anillo de Compromiso",
+  },
+  "Buchet de Flori": { ro: "Buchet de Flori", en: "Bouquet", es: "Ramo de Flores" },
+  "Ceas": { ro: "Ceas", en: "Watch", es: "Reloj" },
   "Câine Mic": { ro: "Câine Mic", en: "Small Dog", es: "Perro Pequeño" },
   "Câine Mediu": { ro: "Câine Mediu", en: "Medium Dog", es: "Perro Mediano" },
   "Câine Mare": { ro: "Câine Mare", en: "Large Dog", es: "Perro Grande" },
+  "Pisică": { ro: "Pisică", en: "Cat", es: "Gato" },
+};
+
+// Etichete pentru grupurile din selectorul "Subiect" (Prioritate: extindere
+// subiecți de referință) — cheia trebuie să corespundă câmpului `category`
+// din SUBJECTS (PhotographyGraphic.tsx).
+export const SUBJECT_CATEGORY_LABELS: Record<string, Dict> = {
+  portret: { ro: "Portret", en: "Portrait", es: "Retrato" },
+  eveniment: {
+    ro: "Nuntă / Eveniment",
+    en: "Wedding / Event",
+    es: "Boda / Evento",
+  },
+  produs: { ro: "Produs / Macro", en: "Product / Macro", es: "Producto / Macro" },
+  animal: { ro: "Animale", en: "Animals", es: "Animales" },
 };
 
 export const DOF_CHARACTER_LABELS: Record<string, Dict> = {

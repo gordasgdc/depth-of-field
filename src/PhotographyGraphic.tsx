@@ -54,33 +54,179 @@ const BrideAndGroom = () => (
   </g>
 );
 
+// Grup de 4 persoane, cu scări ușor diferite ca să sugereze adâncime —
+// util ca reper pentru cadre de grup la nuntă/eveniment.
+const GroupOfPeople = () => (
+  <g>
+    <g transform="translate(-24 3) scale(0.82)">
+      <Human />
+    </g>
+    <g transform="translate(-8 0) scale(1)">
+      <Human />
+    </g>
+    <g transform="translate(9 1) scale(0.94)">
+      <Human />
+    </g>
+    <g transform="translate(24 4) scale(0.8)">
+      <Human />
+    </g>
+  </g>
+);
+
+// Cuplu în mișcare (dans) — două siluete ușor rotite, în oglindă, ca să
+// sugereze o poziție de dans.
+const Dancers = () => (
+  <g>
+    <g transform="translate(-10 2) rotate(-8)">
+      <Human />
+    </g>
+    <g transform="translate(10 2) scale(-1 1) rotate(-8)">
+      <Human />
+    </g>
+  </g>
+);
+
+// Invitat așezat la o masă rotundă simplă — o persoană + o masă geometrică.
+const GuestAtTable = () => (
+  <g>
+    <g transform="translate(-10 10) scale(0.85)">
+      <Human />
+    </g>
+    <g className="cls-1" transform="translate(8 30)">
+      {/* blat de masă */}
+      <rect x={-11} y={-1.2} width={22} height={2.4} rx={1.2} />
+      {/* picior central */}
+      <rect x={-1} y={1.2} width={2} height={9} />
+      {/* bază */}
+      <rect x={-6} y={9.8} width={12} height={1.6} rx={0.8} />
+    </g>
+  </g>
+);
+
+// Inel de logodnă — bandă (inel plin, decupat la mijloc via evenodd) + o
+// piatră mică (diamant) deasupra.
+const EngagementRing = () => {
+  const cx = 0;
+  const cy = 4.2;
+  const outerR = 1.9;
+  const innerR = 1.3;
+  const ring = (r: number) =>
+    `M ${cx - r},${cy} A ${r},${r} 0 1,0 ${cx + r},${cy} A ${r},${r} 0 1,0 ${cx - r},${cy} Z`;
+  return (
+    <g className="cls-1">
+      <path fillRule="evenodd" d={`${ring(outerR)} ${ring(innerR)}`} />
+      <polygon
+        points={`${cx},${cy - outerR - 1.6} ${cx - 0.9},${cy - outerR - 0.7} ${cx},${cy - outerR + 0.1} ${cx + 0.9},${cy - outerR - 0.7}`}
+      />
+    </g>
+  );
+};
+
+// Buchet de flori — câteva "flori" (cercuri mici) grupate deasupra unui
+// mănunchi de tulpini (formă triunghiulară).
+const Bouquet = () => (
+  <g className="cls-1">
+    <path d="M -1.6,15 L 1.6,15 L 0.6,7.5 L -0.6,7.5 Z" />
+    <circle cx={-2.6} cy={5.4} r={1.7} />
+    <circle cx={0} cy={4.2} r={2} />
+    <circle cx={2.6} cy={5.4} r={1.7} />
+    <circle cx={-1.3} cy={2.6} r={1.4} />
+    <circle cx={1.3} cy={2.6} r={1.4} />
+  </g>
+);
+
+// Ceas de mână — cadran rotund + o curea simplă sus și jos.
+const Watch = () => (
+  <g className="cls-1">
+    <rect x={-0.9} y={0.2} width={1.8} height={2} rx={0.4} />
+    <rect x={-0.9} y={4.6} width={1.8} height={2} rx={0.4} />
+    <circle cx={0} cy={3.8} r={1.9} />
+    <circle cx={0} cy={3.8} r={1.1} fill="#fff" fillOpacity={0.35} />
+  </g>
+);
+
+// Pisică — siluetă simplă, așezată: corp oval, cap rotund, urechi
+// triunghiulare, coadă curbată.
+const Cat = () => (
+  <g className="cls-1">
+    <path d="M -4.4,18 C -4.4,13 -3.6,9.5 0,9.5 C 3.6,9.5 4.4,13 4.4,18 Z" />
+    <circle cx={0} cy={6.4} r={3.3} />
+    <polygon points="-2.6,4.4 -1.2,1.2 0.2,4.9" />
+    <polygon points="2.6,4.4 1.2,1.2 -0.2,4.9" />
+    <path d="M 4.2,15 C 6.6,15 7.6,11.8 6.4,9.4 C 6,8.6 5,8.9 5.2,9.8 C 5.8,12 5,13.6 3.6,13.8 Z" />
+  </g>
+);
+
 // SUBJECTS is shared by App and this component; keeping it here avoids moving
-// the large inline SVG paths into a separate module.
+// the large inline SVG paths into a separate module. `category` is used to
+// group the subject dropdown in App.tsx (Portret / Nuntă-Eveniment /
+// Produs-Macro / Animale).
 // eslint-disable-next-line react-refresh/only-export-components
 export const SUBJECTS = {
   "Persoană": {
     graphic: Human,
     height: 72,
+    category: "portret" as const,
   },
   "Persoană la Birou": {
     graphic: HumanAtDesk,
     height: 54,
+    category: "portret" as const,
   },
   "Cuplu de Miri": {
     graphic: BrideAndGroom,
     height: 72,
+    category: "eveniment" as const,
+  },
+  "Grup de Oameni": {
+    graphic: GroupOfPeople,
+    height: 72,
+    category: "eveniment" as const,
+  },
+  "Dansatori": {
+    graphic: Dancers,
+    height: 72,
+    category: "eveniment" as const,
+  },
+  "Invitat la Masă": {
+    graphic: GuestAtTable,
+    height: 60,
+    category: "eveniment" as const,
+  },
+  "Inel de Logodnă": {
+    graphic: EngagementRing,
+    height: 6,
+    category: "produs" as const,
+  },
+  "Buchet de Flori": {
+    graphic: Bouquet,
+    height: 16,
+    category: "produs" as const,
+  },
+  "Ceas": {
+    graphic: Watch,
+    height: 6,
+    category: "produs" as const,
   },
   "Câine Mic": {
     graphic: SmallDog,
     height: 20,
+    category: "animal" as const,
   },
   "Câine Mediu": {
     graphic: MediumDog,
     height: 30,
+    category: "animal" as const,
   },
   "Câine Mare": {
     graphic: LargeDog,
     height: 40,
+    category: "animal" as const,
+  },
+  "Pisică": {
+    graphic: Cat,
+    height: 19,
+    category: "animal" as const,
   },
 };
 

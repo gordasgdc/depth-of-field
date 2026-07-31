@@ -67,6 +67,7 @@ import {
   SENSOR_LABELS,
   SENSOR_TYPE_LABELS,
   SUBJECT_LABELS,
+  SUBJECT_CATEGORY_LABELS,
   DOF_CHARACTER_LABELS,
   COMMON_SETUP_LABELS,
   VIDEO_WEDDING_SETUP_LABELS,
@@ -713,6 +714,16 @@ const cropFactor = isCustomSensor
   // pe brand — se schimbă automat cu Modul Foto/Video ales.
   const activeCameras = captureMode === "Video" ? VIDEO_CAMERAS : PHOTO_CAMERAS;
   const groupedCameras = groupCamerasByBrand(activeCameras);
+
+  // Grupează subiecții de referință pe categorie (Portret / Nuntă-Eveniment /
+  // Produs-Macro / Animale), în ordinea în care vrem să apară grupurile.
+  const SUBJECT_CATEGORY_ORDER = ["portret", "eveniment", "produs", "animal"] as const;
+  const groupedSubjects = SUBJECT_CATEGORY_ORDER.map((category) => ({
+    category,
+    entries: Object.entries(SUBJECTS).filter(
+      ([, value]) => value.category === category
+    ),
+  })).filter((group) => group.entries.length > 0);
 
   // În Video, diafragma se exprimă în T-stop (transmisie reală de lumină,
   // corectată pentru pierderile din obiectiv) — de-asta apare "T" în loc de "f".
@@ -1676,10 +1687,17 @@ const cropFactor = isCustomSensor
                     }
                   }}
                 >
-                  {Object.entries(SUBJECTS).map(([key]) => (
-                    <option key={key} value={key}>
-                      {SUBJECT_LABELS[key]?.[language] ?? key}
-                    </option>
+                  {groupedSubjects.map(({ category, entries }) => (
+                    <optgroup
+                      label={SUBJECT_CATEGORY_LABELS[category][language]}
+                      key={category}
+                    >
+                      {entries.map(([key]) => (
+                        <option key={key} value={key}>
+                          {SUBJECT_LABELS[key]?.[language] ?? key}
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
                 </Select>
               </Box>
