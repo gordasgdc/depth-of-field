@@ -75,6 +75,12 @@ export const translations: Record<Lang, Dict> = {
       "Senzorii mai mici au, de regulă, profunzime de câmp mai mare la aceeași distanță focală și diafragmă — de-asta un telefon are totul clar, iar un obiectiv full-frame poate izola subiectul.",
     senzorPersonalizat: "Personalizat",
     senzorPlaceholder: "Senzor",
+    senzorCamera: "Senzor / Cameră",
+    senzorCameraTooltip:
+      "Alege un model de cameră real pentru dimensiuni exacte ale senzorului — lista se schimbă automat în funcție de Modul Foto/Video ales. Nu-ți găsești modelul? Folosește „Senzor Personalizat”.",
+    senzorPersonalizatGrup: "Senzor Personalizat",
+    toastModeSwitch: "Comutare la Mod {mode}",
+    toastModeSwitchDesc: "Cameră selectată: {camera} ({type})",
     subiect: "Subiect",
     subiectTooltip:
       "Alege un subiect de referință, ca să vizualizezi mai ușor scara scenei și unde cade zona de focus pe el.",
@@ -194,6 +200,12 @@ export const translations: Record<Lang, Dict> = {
       "Smaller sensors generally have a greater depth of field at the same focal length and aperture — that's why a phone keeps everything sharp, while a full-frame lens can isolate the subject.",
     senzorPersonalizat: "Custom",
     senzorPlaceholder: "Sensor",
+    senzorCamera: "Sensor / Camera",
+    senzorCameraTooltip:
+      "Pick a real camera model for exact sensor dimensions — the list switches automatically based on the Photo/Video mode you chose. Can't find your model? Use \"Custom Sensor\".",
+    senzorPersonalizatGrup: "Custom Sensor",
+    toastModeSwitch: "Switched to {mode} Mode",
+    toastModeSwitchDesc: "Camera selected: {camera} ({type})",
     subiect: "Subject",
     subiectTooltip:
       "Pick a reference subject to more easily visualize the scale of the scene and where the focus zone falls on it.",
@@ -312,6 +324,12 @@ export const translations: Record<Lang, Dict> = {
       "Los sensores más pequeños suelen tener mayor profundidad de campo a la misma distancia focal y apertura — por eso un teléfono mantiene todo nítido, mientras que un objetivo full-frame puede aislar al sujeto.",
     senzorPersonalizat: "Personalizado",
     senzorPlaceholder: "Sensor",
+    senzorCamera: "Sensor / Cámara",
+    senzorCameraTooltip:
+      "Elige un modelo de cámara real para obtener las dimensiones exactas del sensor — la lista cambia automáticamente según el Modo Foto/Video elegido. ¿No encuentras tu modelo? Usa «Sensor Personalizado».",
+    senzorPersonalizatGrup: "Sensor Personalizado",
+    toastModeSwitch: "Cambiado a Modo {mode}",
+    toastModeSwitchDesc: "Cámara seleccionada: {camera} ({type})",
     subiect: "Sujeto",
     subiectTooltip:
       "Elige un sujeto de referencia para visualizar más fácilmente la escala de la escena y dónde cae la zona de enfoque sobre él.",
@@ -420,6 +438,20 @@ export const SENSOR_LABELS: Record<string, Dict> = {
     es: "6x7 (Formato Medio)",
   },
   Custom: { ro: "Personalizat", en: "Custom", es: "Personalizado" },
+};
+
+// Etichete pentru tipul de senzor al camerelor reale din src/data/cameras.ts
+// (Camera.type) — folosite în meniul „Senzor / Cameră", grupat pe brand.
+export const SENSOR_TYPE_LABELS: Record<string, Dict> = {
+  "Full Frame": { ro: "Full Frame", en: "Full Frame", es: "Full Frame" },
+  "APS-C": { ro: "APS-C", en: "APS-C", es: "APS-C" },
+  "M4/3": { ro: "M4/3", en: "M4/3", es: "M4/3" },
+  "Super 35": { ro: "Super 35", en: "Super 35", es: "Super 35" },
+  "Medium Format": {
+    ro: "Format Mediu",
+    en: "Medium Format",
+    es: "Formato Medio",
+  },
 };
 
 export const SUBJECT_LABELS: Record<string, Dict> = {

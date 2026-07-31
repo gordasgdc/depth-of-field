@@ -53,12 +53,19 @@ import ComparisonTable from "./components/ComparisonTable";
 import PracticalTip from "./components/PracticalTip";
 import { useInfluencers } from "./hooks/useInfluencers";
 import {
+  PHOTO_CAMERAS,
+  VIDEO_CAMERAS,
+  findCameraById,
+  groupCamerasByBrand,
+} from "./data/cameras";
+import {
   Lang,
   LANGUAGES,
   translate,
   SYSTEM_LABELS,
   CAPTURE_MODE_LABELS,
   SENSOR_LABELS,
+  SENSOR_TYPE_LABELS,
   SUBJECT_LABELS,
   DOF_CHARACTER_LABELS,
   COMMON_SETUP_LABELS,
@@ -502,6 +509,11 @@ function App() {
     const v = getInitialParam("sh");
     return v ? Number(v) : 24;
   });
+  // Cameră reală selectată în meniul "Senzor / Cameră" (id din src/data/cameras.ts),
+  // sau null dacă utilizatorul a introdus manual un senzor personalizat.
+  const [selectedCameraId, setSelectedCameraId] = useState<string | null>(
+    () => getInitialParam("camera") || null
+  );
   const [weddingMode, setWeddingMode] = useState(false);
   const [rackStartInInches, setRackStartInInches] = useState(48);
   const [rackEndInInches, setRackEndInInches] = useState(120);
@@ -528,6 +540,9 @@ function App() {
     focalLengthInMillimeters: number;
     aperture: number;
     sensor: string;
+    cameraId: string | null;
+    customSensorWidth: number;
+    customSensorHeight: number;
     system: (typeof SYSTEMS)[number];
   };
   const [savedPresets, setSavedPresets] = useState<SavedPreset[]>(() => {
@@ -554,6 +569,16 @@ const circleOfConfusionInMillimeters = isCustomSensor
 const cropFactor = isCustomSensor
   ? 43.27 / Math.sqrt(customSensorWidth ** 2 + customSensorHeight ** 2)
   : CIRCLES_OF_CONFUSION[sensor].cropFactor;
+
+  // Preferă numele real al camerei (brand + model) dacă una e selectată;
+  // altfel cade pe eticheta generică de senzor (compare mode, presetări).
+  function getSensorDisplayName(sensorKey: string, cameraId?: string | null): string {
+    const cam = findCameraById(cameraId ?? null);
+    if (cam) {
+      return `${cam.brand} ${cam.model} (${SENSOR_TYPE_LABELS[cam.type][language]})`;
+    }
+    return SENSOR_LABELS[sensorKey]?.[language] ?? sensorKey;
+  }
 
   const hyperFocalDistanceInMM =
     focalLengthInMillimeters +
@@ -684,6 +709,11 @@ const cropFactor = isCustomSensor
   const activeQuickScenarios =
     captureMode === "Video" ? VIDEO_QUICK_SCENARIOS : PHOTO_QUICK_SCENARIOS;
 
+  // Lista de camere reale afișată în selectorul "Senzor / Cameră", grupată
+  // pe brand — se schimbă automat cu Modul Foto/Video ales.
+  const activeCameras = captureMode === "Video" ? VIDEO_CAMERAS : PHOTO_CAMERAS;
+  const groupedCameras = groupCamerasByBrand(activeCameras);
+
   // În Video, diafragma se exprimă în T-stop (transmisie reală de lumină,
   // corectată pentru pierderile din obiectiv) — de-asta apare "T" în loc de "f".
   const apertureUnitPrefix = captureMode === "Video" ? "T" : "f";
@@ -755,6 +785,24 @@ const cropFactor = isCustomSensor
     rackAnimationRef.current = requestAnimationFrame(step);
   }
 
+  // La prima vizită (fără link partajat), pornim cu primul model de cameră
+  // real din lista modului curent, nu cu senzorul generic — respectă
+  // link-urile vechi/partajate, care încă specifică un senzor explicit.
+  useEffect(() => {
+    const hadSensorParam = !!getInitialParam("sensor");
+    const hadCameraParam = !!getInitialParam("camera");
+    if (!hadSensorParam && !hadCameraParam) {
+      const firstCam = (captureMode === "Video" ? VIDEO_CAMERAS : PHOTO_CAMERAS)[0];
+      if (firstCam) {
+        setSelectedCameraId(firstCam.id);
+        setSensor("Custom");
+        setCustomSensorWidth(firstCam.sensorWidth);
+        setCustomSensorHeight(firstCam.sensorHeight);
+      }
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     return () => {
       if (rackAnimationRef.current) {
@@ -806,6 +854,9 @@ const cropFactor = isCustomSensor
       focalLengthInMillimeters,
       aperture,
       sensor,
+      cameraId: selectedCameraId,
+      customSensorWidth,
+      customSensorHeight,
       system,
     };
     const next = [newPreset, ...savedPresets].slice(0, 3);
@@ -825,6 +876,9 @@ const cropFactor = isCustomSensor
     setFocalLengthInMillimeters(preset.focalLengthInMillimeters);
     setAperture(preset.aperture);
     setSensor(preset.sensor);
+    setSelectedCameraId(preset.cameraId ?? null);
+    if (preset.customSensorWidth) setCustomSensorWidth(preset.customSensorWidth);
+    if (preset.customSensorHeight) setCustomSensorHeight(preset.customSensorHeight);
     setSystem(preset.system);
   }
 
@@ -836,6 +890,7 @@ const cropFactor = isCustomSensor
     setFocalLengthInMillimeters(scenario.focalLength);
     setAperture(scenario.aperture);
     setSensor(scenario.sensor);
+    setSelectedCameraId(null);
     setDistanceToSubjectInInches(metersToInches(scenario.distanceInMeters));
   }
 
@@ -877,6 +932,9 @@ const cropFactor = isCustomSensor
       params.set("sw", String(customSensorWidth));
       params.set("sh", String(customSensorHeight));
     }
+    if (selectedCameraId) {
+      params.set("camera", selectedCameraId);
+    }
     const newUrl = `${window.location.pathname}?${params.toString()}`;
     window.history.replaceState(null, "", newUrl);
   }, [
@@ -890,6 +948,7 @@ const cropFactor = isCustomSensor
     customSensorHeight,
     captureMode,
     language,
+    selectedCameraId,
   ]);
 
   function copyShareLink() {
@@ -969,7 +1028,30 @@ const cropFactor = isCustomSensor
       <Box px={4} pt={4}>
         <Flex justify="center" mb={3}>
           <RadioGroup
-            onChange={(v) => setCaptureMode(v as (typeof CAPTURE_MODES)[number])}
+            onChange={(v) => {
+              const newMode = v as (typeof CAPTURE_MODES)[number];
+              setCaptureMode(newMode);
+              const firstCam = (newMode === "Video" ? VIDEO_CAMERAS : PHOTO_CAMERAS)[0];
+              if (firstCam) {
+                setSelectedCameraId(firstCam.id);
+                setSensor("Custom");
+                setCustomSensorWidth(firstCam.sensorWidth);
+                setCustomSensorHeight(firstCam.sensorHeight);
+                toast({
+                  title: t("toastModeSwitch", {
+                    mode: CAPTURE_MODE_LABELS[newMode][language],
+                  }),
+                  description: t("toastModeSwitchDesc", {
+                    camera: `${firstCam.brand} ${firstCam.model}`,
+                    type: SENSOR_TYPE_LABELS[firstCam.type][language],
+                  }),
+                  status: "info",
+                  duration: 3000,
+                  isClosable: true,
+                  position: "top",
+                });
+              }
+            }}
             value={captureMode}
           >
             <Stack direction="row" spacing={4}>
@@ -1014,7 +1096,7 @@ const cropFactor = isCustomSensor
       <Box p={2} pt={4}>
         {compareMode && (
           <Text fontSize="xs" fontWeight="semibold" color={mutedText} mb={1}>
-            {t("setupPrincipal", { sensor: SENSOR_LABELS[sensor]?.[language] ?? sensor })}
+            {t("setupPrincipal", { sensor: getSensorDisplayName(sensor, selectedCameraId) })}
           </Text>
         )}
         <PhotographyGraphic
@@ -1098,7 +1180,7 @@ const cropFactor = isCustomSensor
                 textAlign="center"
               >
                 <Text fontSize="xs" color={mutedText}>
-                  {t("totalDofFor", { sensor: SENSOR_LABELS[sensor]?.[language] ?? sensor })}
+                  {t("totalDofFor", { sensor: getSensorDisplayName(sensor, selectedCameraId) })}
                 </Text>
                 <Text fontWeight="bold" fontSize="sm">
                   {isInfinityFar ? "∞" : convertUnits(totalDofInches, 0)}
@@ -1480,7 +1562,10 @@ const cropFactor = isCustomSensor
       <input
         type="number"
         value={customSensorWidth}
-        onChange={(e) => setCustomSensorWidth(Number(e.target.value))}
+        onChange={(e) => {
+          setCustomSensorWidth(Number(e.target.value));
+          setSelectedCameraId(null);
+        }}
         style={{ width: 70, padding: "2px 6px", borderRadius: 6, border: "1px solid #ccc" }}
       />
     </Flex>
@@ -1489,7 +1574,10 @@ const cropFactor = isCustomSensor
       <input
         type="number"
         value={customSensorHeight}
-        onChange={(e) => setCustomSensorHeight(Number(e.target.value))}
+        onChange={(e) => {
+          setCustomSensorHeight(Number(e.target.value));
+          setSelectedCameraId(null);
+        }}
         style={{ width: 70, padding: "2px 6px", borderRadius: 6, border: "1px solid #ccc" }}
       />
     </Flex>
@@ -1506,9 +1594,9 @@ const cropFactor = isCustomSensor
               >
                 <Icon as={FiCamera} boxSize={4} color={mutedText} />
                 <Text fontSize="sm" textAlign="right">
-                  {t("senzor")}
+                  {t("senzorCamera")}
                 </Text>
-                <InfoTip label={t("senzorTooltip")} />
+                <InfoTip label={t("senzorCameraTooltip")} />
               </Flex>
               <Box flexGrow={1}>
                 <Select
@@ -1520,21 +1608,35 @@ const cropFactor = isCustomSensor
                   _focus={nativeSelectStyles._focus}
                   _active={nativeSelectStyles._active}
                   sx={nativeSelectStyles.sx}
-                  value={sensor}
-                  placeholder={t("senzorPlaceholder")}
+                  value={selectedCameraId ?? "Custom"}
                   onChange={(evt) => {
-                    if (!evt?.target?.value) {
+                    const value = evt?.target?.value;
+                    if (!value) return;
+                    if (value === "Custom") {
+                      setSelectedCameraId(null);
+                      setSensor("Custom");
                       return;
                     }
-                    setSensor(evt?.target?.value);
+                    const cam = findCameraById(value);
+                    if (!cam) return;
+                    setSelectedCameraId(cam.id);
+                    setSensor("Custom");
+                    setCustomSensorWidth(cam.sensorWidth);
+                    setCustomSensorHeight(cam.sensorHeight);
                   }}
                 >
-                  {Object.entries(CIRCLES_OF_CONFUSION).map(([key]) => (
-                    <option key={key} value={key}>
-                      {SENSOR_LABELS[key]?.[language] ?? key}
-                    </option>
+                  {Object.entries(groupedCameras).map(([brand, cams]) => (
+                    <optgroup label={brand} key={brand}>
+                      {cams.map((cam) => (
+                        <option key={cam.id} value={cam.id}>
+                          {cam.model} ({SENSOR_TYPE_LABELS[cam.type][language]})
+                        </option>
+                      ))}
+                    </optgroup>
                   ))}
-                  <option value="Custom">{t("senzorPersonalizat")}</option>
+                  <optgroup label={t("senzorPersonalizatGrup")}>
+                    <option value="Custom">{t("senzorPersonalizat")}</option>
+                  </optgroup>
                 </Select>
               </Box>
             </Flex>
@@ -1717,7 +1819,7 @@ const cropFactor = isCustomSensor
                         variant="ghost"
                         onClick={() => loadPreset(preset)}
                       >
-                        {preset.name} · {SENSOR_LABELS[preset.sensor]?.[language] ?? preset.sensor}
+                        {preset.name} · {getSensorDisplayName(preset.sensor, preset.cameraId)}
                       </Button>
                       <IconButton
                         aria-label={t("stergePresetare")}
@@ -1763,6 +1865,7 @@ const cropFactor = isCustomSensor
                       setFocalLengthInMillimeters(setup.focalLength);
                       setAperture(setup.aperture);
                       setSensor(setup.sensor);
+                      setSelectedCameraId(null);
                       setDistanceToSubjectInInches(setup.idealDistance);
                     }}
                   >
@@ -1806,6 +1909,7 @@ const cropFactor = isCustomSensor
                         setFocalLengthInMillimeters(setup.focalLength);
                         setAperture(setup.aperture);
                         setSensor(setup.sensor);
+                        setSelectedCameraId(null);
                         setDistanceToSubjectInInches(setup.idealDistance);
                       }}
                     >
@@ -1964,7 +2068,7 @@ const cropFactor = isCustomSensor
           <Text fontWeight="semibold">{t("mod")}</Text>
           <Text>{CAPTURE_MODE_LABELS[captureMode][language]}</Text>
           <Text fontWeight="semibold">{t("senzorLabel")}</Text>
-          <Text>{SENSOR_LABELS[sensor]?.[language] ?? sensor}</Text>
+          <Text>{getSensorDisplayName(sensor, selectedCameraId)}</Text>
           <Text fontWeight="semibold">{t("distantaFocalaLabel")}</Text>
           <Text>{focalLengthInMillimeters}mm</Text>
           <Text fontWeight="semibold">{t("diafragmaLabel")}</Text>
