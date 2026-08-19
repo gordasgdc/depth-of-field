@@ -117,12 +117,16 @@ const CIRCLES_OF_CONFUSION: Record<
     cropFactor: 2.0
   },
   "6x6 (Format Mediu)": {
-    coc: 0.02,
+    // CoC recalculat: era 0.02mm, mai mic decat Full Frame (0.029mm) — imposibil fizic,
+    // un senzor mai mare tolereaza un cerc de confuzie mai mare. Formula: 43.27 / (1500 * cropFactor),
+    // consecventa cu restul formatelor de mai sus.
+    coc: 0.052,
     sensorHeight: 60,
     cropFactor: 0.55
   },
   "6x7 (Format Mediu)": {
-    coc: 0.025,
+    // Idem — era 0.025mm, recalculat cu aceeasi formula ca mai sus.
+    coc: 0.061,
     sensorHeight: 70,
     cropFactor: 0.47
   },
