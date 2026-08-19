@@ -137,7 +137,7 @@ export const translations: Record<Lang, Dict> = {
     focalizareIndepartataLabel: "Focalizare Îndepărtată:",
     profunzimeTotalaLabel: "Profunzime Totală:",
     distantaHiperfocalaLabel: "Distanță Hiperfocală:",
-    fisaFooter: "Generat cu Simulator de Profunzime a Câmpului — Cristi Gordas · gordasgdc.github.io/depth-of-field",
+    fisaFooter: "Generat cu Simulator de Profunzime a Câmpului — Cristi Gordas · gordas.dev/depth-of-field",
   },
 
   en: {
@@ -261,7 +261,7 @@ export const translations: Record<Lang, Dict> = {
     focalizareIndepartataLabel: "Far Focus Point:",
     profunzimeTotalaLabel: "Total Depth:",
     distantaHiperfocalaLabel: "Hyperfocal Distance:",
-    fisaFooter: "Generated with Depth of Field Simulator — Cristi Gordas · gordasgdc.github.io/depth-of-field",
+    fisaFooter: "Generated with Depth of Field Simulator — Cristi Gordas · gordas.dev/depth-of-field",
   },
 
   es: {
@@ -385,7 +385,7 @@ export const translations: Record<Lang, Dict> = {
     focalizareIndepartataLabel: "Punto de Enfoque Lejano:",
     profunzimeTotalaLabel: "Profundidad Total:",
     distantaHiperfocalaLabel: "Distancia Hiperfocal:",
-    fisaFooter: "Generado con Simulador de Profundidad de Campo — Cristi Gordas · gordasgdc.github.io/depth-of-field",
+    fisaFooter: "Generado con Simulador de Profundidad de Campo — Cristi Gordas · gordas.dev/depth-of-field",
   },
 };
 
