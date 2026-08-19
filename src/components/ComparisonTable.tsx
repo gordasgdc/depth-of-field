@@ -1,5 +1,7 @@
 import {
   Box,
+  Flex,
+  Icon,
   Text,
   Table,
   Thead,
@@ -10,6 +12,7 @@ import {
   TableContainer,
   useColorModeValue,
 } from "@chakra-ui/react";
+import { TbTable } from "react-icons/tb";
 import type { Lang } from "../i18n";
 import { translateInfluencers } from "../translations/influencers";
 
@@ -62,9 +65,12 @@ export default function ComparisonTable({
 
   return (
     <Box mt={4} p={4} rounded="lg" bg={cardBg} border="1px" borderColor={borderColor}>
-      <Text fontWeight="bold" fontSize="sm" color={headingColor} mb={3}>
-        📊 {ti("tableTitle")}
-      </Text>
+      <Flex align="center" gap={2} mb={3}>
+        <Icon as={TbTable} boxSize={4} color={headingColor} />
+        <Text fontWeight="bold" fontSize="sm" color={headingColor}>
+          {ti("tableTitle")}
+        </Text>
+      </Flex>
       <TableContainer>
         <Table size="sm" variant="simple">
           <Thead>

@@ -66,7 +66,7 @@ export const translations: Record<Lang, Dict> = {
       "Diafragmă mai deschisă (f mic) = profunzime de câmp mai mică, dar mai multă lumină. Diafragmă închisă (f mare) = profunzime mai mare, dar mai puțină lumină.",
     diafragmaTooltipVideo:
       "T-stop mic (deschis) = profunzime de câmp mai mică, dar mai multă lumină ajunge la senzor. T-stop mare (închis) = profunzime mai mare, dar mai puțină lumină. Spre deosebire de f-stop, T-stop măsoară lumina transmisă efectiv prin obiectiv, corectată pentru pierderile optice — de-asta obiectivele cinema sunt marcate în T, nu în f.",
-    difractieWarning: "⚠ Difracția poate reduce claritatea peste {value} pe acest senzor",
+    difractieWarning: "Difracția poate reduce claritatea peste {value} pe acest senzor",
 
     latimeMm: "Lățime (mm)",
     inaltimeMm: "Înălțime (mm)",
@@ -191,7 +191,7 @@ export const translations: Record<Lang, Dict> = {
       "A wider aperture (small f-number) = shallower depth of field but more light. A narrower aperture (large f-number) = greater depth of field but less light.",
     diafragmaTooltipVideo:
       "A small T-stop (wide open) = shallower depth of field but more light reaches the sensor. A large T-stop (closed down) = greater depth of field but less light. Unlike f-stop, T-stop measures the light actually transmitted through the lens, corrected for optical losses — that's why cine lenses are marked in T, not f.",
-    difractieWarning: "⚠ Diffraction may reduce sharpness above {value} on this sensor",
+    difractieWarning: "Diffraction may reduce sharpness above {value} on this sensor",
 
     latimeMm: "Width (mm)",
     inaltimeMm: "Height (mm)",
@@ -315,7 +315,7 @@ export const translations: Record<Lang, Dict> = {
       "Una apertura más abierta (número f pequeño) = menor profundidad de campo pero más luz. Una apertura cerrada (número f grande) = mayor profundidad de campo pero menos luz.",
     diafragmaTooltipVideo:
       "Un T-stop pequeño (abierto) = menor profundidad de campo pero llega más luz al sensor. Un T-stop grande (cerrado) = mayor profundidad de campo pero menos luz. A diferencia del f-stop, el T-stop mide la luz realmente transmitida por el objetivo, corregida por las pérdidas ópticas — por eso los objetivos de cine se marcan en T, no en f.",
-    difractieWarning: "⚠ La difracción puede reducir la nitidez por encima de {value} en este sensor",
+    difractieWarning: "La difracción puede reducir la nitidez por encima de {value} en este sensor",
 
     latimeMm: "Ancho (mm)",
     inaltimeMm: "Alto (mm)",

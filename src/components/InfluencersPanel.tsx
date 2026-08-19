@@ -9,7 +9,7 @@ import {
   Button,
   useColorModeValue,
 } from "@chakra-ui/react";
-import { TbAperture, TbZoomIn, TbRuler, TbX } from "react-icons/tb";
+import { TbAperture, TbZoomIn, TbRuler, TbX, TbFocus2 } from "react-icons/tb";
 import type { Lang } from "../i18n";
 import { translateInfluencers } from "../translations/influencers";
 
@@ -134,9 +134,12 @@ export default function InfluencersPanel({
         right={2}
         onClick={closePanel}
       />
-      <Text fontWeight="bold" fontSize="md" color={headingColor} mb={1} pr={8}>
-        🎯 {ti("panelTitle")}
-      </Text>
+      <Flex align="center" gap={2} mb={1} pr={8}>
+        <Icon as={TbFocus2} boxSize={4} color={headingColor} />
+        <Text fontWeight="bold" fontSize="md" color={headingColor}>
+          {ti("panelTitle")}
+        </Text>
+      </Flex>
       <Text fontSize="xs" color={mutedText} mb={4}>
         {ti("panelSubtitle")}
       </Text>

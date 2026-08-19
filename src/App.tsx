@@ -42,7 +42,7 @@ import {
   AccordionIcon,
   SlideFade,
 } from "@chakra-ui/react";
-import { TbRuler, TbAperture, TbZoomIn, TbUser, TbMountain, TbBuildingSkyscraper, TbDeviceFloppy, TbX, TbBulb } from "react-icons/tb";
+import { TbRuler, TbAperture, TbZoomIn, TbUser, TbMountain, TbBuildingSkyscraper, TbDeviceFloppy, TbX, TbBulb, TbAlertTriangle } from "react-icons/tb";
 import { FiGithub, FiCamera, FiSun, FiMoon, FiPlay, FiHeart, FiLink, FiPrinter } from "react-icons/fi";
 import { toImperial, toMetric } from "./utils/units";
 import { buildNativeSelectStyles } from "./selectStyles";
@@ -1582,7 +1582,12 @@ const cropFactor = isCustomSensor
                 py={0.5}
                 fontSize="xs"
                 rounded="md"
+                display="flex"
+                alignItems="center"
+                gap={1}
+                w="fit-content"
               >
+                <Icon as={TbAlertTriangle} boxSize={3} />
                 {t("difractieWarning", {
                   value: `${apertureUnitPrefix}/${diffractionLimitFStop.toFixed(1)}`,
                 })}
