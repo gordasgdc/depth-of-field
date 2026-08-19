@@ -1,10 +1,36 @@
 import { useRef } from "react";
 import { motion } from "framer-motion";
 import { toImperial, toMetric } from "./utils/units";
+import { StandingPersonA } from "./assets/peeps/StandingPersonA";
+import { StandingPersonB } from "./assets/peeps/StandingPersonB";
+import { SittingPerson } from "./assets/peeps/SittingPerson";
+import { WalkingPerson } from "./assets/peeps/WalkingPerson";
 
 const MotionG = motion.g;
 const MotionRect = motion.rect;
 const MotionLine = motion.line;
+
+// Canvas original al ilustrațiilor Open Peeps (vezi src/assets/peeps/).
+const PEEP_VIEWBOX_W = 850;
+const PEEP_VIEWBOX_H = 1200;
+
+// Scalează o siluetă Open Peeps la `height` (unități SVG locale) și o
+// centrează pe axa X — aceeași convenție de poziționare ca restul
+// diagramei (x=0 e centrul subiectului, y=height e solul).
+function PeepFigure({
+  height,
+  Component,
+}: {
+  height: number;
+  Component: () => JSX.Element;
+}) {
+  const scale = height / PEEP_VIEWBOX_H;
+  return (
+    <g transform={`scale(${scale}) translate(${-PEEP_VIEWBOX_W / 2} 0)`}>
+      <Component />
+    </g>
+  );
+}
 
 // Culori consecvente cu tema GDC (vezi theme.ts): accent verde-teal pe fundal antracit.
 const ACCENT = "#34E8A0";
@@ -17,44 +43,15 @@ function clampNumber(value: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, value));
 }
 
-// ── Sistem unificat de pictograme (stil ISO 7001 / hărți de distanță din
-// seturile de filmare) ──────────────────────────────────────────────────
-// Toate subiectele "vii" (persoane, animale) sunt construite din aceleași
-// primitive geometrice (cerc + poligon), cu proporții calculate din
-// `height`, nu desenate manual una câte una — de-aici coerența de stil.
-// Zero detaliu anatomic arbitrar, exact ca pictogramele de siguranță din
-// aeroporturi sau marcajele de pe hărțile de distanță ale seturilor cine.
+// ── Persoane — ilustrații Open Peeps ──────────────────────────────────────
+// Siluete umane detaliate, anatomice (cap, păr, brațe, mâini, picioare),
+// desenate de Pablo Stanley (Open Peeps, licență CC0), extrase static în
+// src/assets/peeps/ și aplatizate la o singură culoare (currentColor) ca
+// să se încadreze în sistemul de accent/dim al diagramei. Toate provin din
+// același sistem de ilustrare — de-aici coerența de stil între ele.
 
-type FigureVariant = "standing" | "seated";
-
-function FigurePictogram({
-  height,
-  variant = "standing",
-}: {
-  height: number;
-  variant?: FigureVariant;
-}) {
-  const headR = height * 0.085;
-  const headCY = headR + height * 0.02;
-  const shoulderY = headCY + headR * 1.15;
-  const shoulderHalfW = height * 0.15;
-  const waistY = variant === "seated" ? height * 0.62 : height * 0.56;
-  const waistHalfW = height * 0.095;
-  const groundY = height;
-  const footHalfW = variant === "seated" ? height * 0.2 : height * 0.075;
-
-  return (
-    <g>
-      <circle cx={0} cy={headCY} r={headR} />
-      <polygon
-        points={`${-shoulderHalfW},${shoulderY} ${shoulderHalfW},${shoulderY} ${waistHalfW},${waistY} ${footHalfW},${groundY} ${-footHalfW},${groundY} ${-waistHalfW},${waistY}`}
-      />
-    </g>
-  );
-}
-
-// Birou geometric simplu (blat + două picioare + monitor) — pereche pentru
-// FigurePictogram variant="seated".
+// Birou geometric simplu (blat + două picioare + monitor) — obiect, nu
+// personaj, rămâne simplu intenționat; pereche pentru SittingPerson.
 function Desk({ height }: { height: number }) {
   const deskY = height * 0.62;
   const deskW = height * 0.62;
@@ -75,9 +72,8 @@ function Desk({ height }: { height: number }) {
   );
 }
 
-// Siluetă generică de patruped (câine/pisică), văzută din profil — corp
-// (dreptunghi rotunjit) + cap (cerc) + urechi (formă diferită per specie) +
-// două picioare simplificate + coadă curbă. O singură funcție, două stiluri.
+// Siluetă de patruped (câine/pisică), văzută din profil — un singur traseu
+// bezier închis (nu cerc+dreptunghi), cu urechi diferite per specie.
 function QuadrupedPictogram({
   height,
   ears = "dog",
@@ -85,75 +81,43 @@ function QuadrupedPictogram({
   height: number;
   ears?: "dog" | "cat";
 }) {
-  const bodyH = height * 0.55;
-  const bodyW = height * 1.5;
-  const headR = height * 0.28;
-  const legW = height * 0.12;
-  const legH = height * 0.45;
-  const groundY = height;
-  const bodyTopY = groundY - legH - bodyH;
-  const bodyCenterY = bodyTopY + bodyH / 2;
-  const headCX = bodyW / 2 - headR * 0.55;
-  const headCY = bodyTopY + headR * 0.55;
-
-  const earLeft =
+  const s = height / 40; // factor de scară — traseul e desenat la o înălțime de referință de 40
+  const earTip =
     ears === "cat"
-      ? `M ${headCX - headR * 0.6},${headCY - headR * 0.7} L ${headCX - headR * 0.1},${headCY - headR * 1.5} L ${headCX + headR * 0.15},${headCY - headR * 0.55} Z`
-      : `M ${headCX - headR * 0.65},${headCY - headR * 0.25} Q ${headCX - headR * 1.15},${headCY + headR * 0.45} ${headCX - headR * 0.25},${headCY + headR * 0.85} Z`;
-  const earRight =
-    ears === "cat"
-      ? `M ${headCX + headR * 0.1},${headCY - headR * 0.7} L ${headCX + headR * 0.6},${headCY - headR * 1.5} L ${headCX + headR * 0.85},${headCY - headR * 0.55} Z`
-      : `M ${headCX + headR * 0.25},${headCY - headR * 0.25} Q ${headCX + headR * 0.75},${headCY + headR * 0.45} ${headCX - headR * 0.05},${headCY + headR * 0.85} Z`;
-
+      ? "M 30,6 C 29,2 26,-2 24,1 C 26,3 27,5 27.5,7 Z M 20,4 C 19.5,0 17,-3 15,0 C 16.5,2 18,4 18.5,6 Z"
+      : "M 31,10 C 33,6 33,1 29,2 C 28,5 27.5,8 28,11 Z M 15,9 C 12.5,5 12,0 16.5,1.5 C 17,4.5 17,7.5 16.5,10 Z";
   return (
-    <g>
+    <g transform={`scale(${s})`}>
       <path
-        d={`M ${-bodyW / 2 + bodyH * 0.15},${bodyCenterY - headR * 0.55} Q ${-bodyW / 2 - height * 0.22},${bodyCenterY - height * 0.12} ${-bodyW / 2 - height * 0.1},${bodyTopY + bodyH * 0.15}`}
-        stroke="currentColor"
-        strokeWidth={legW * 0.45}
-        fill="none"
-        strokeLinecap="round"
+        d="M 6,40 C 5,37 5,34 6.5,31.5 C 4,29.5 3,26.5 3.5,23 C 1,21.5 0.5,18.5 2,16 C 1,13 2.5,10 5.5,9 C 7,5.5 10.5,3 14.5,3 C 17,1 20.5,0.5 23,2 C 26.5,1.5 30,3.5 31,7 C 34.5,8 36.5,11.5 35.5,15 C 37.5,17 37.5,20 35.5,22 C 36,25.5 34,28.5 30.5,29.5 C 30,32 29.5,34.5 30,37 C 30,38.5 29,40 27,40 C 25.5,40 24.5,38.5 25,37 C 24.5,35.5 24.5,33.5 25.5,31.5 C 21,32.5 15,32.5 10.5,31 C 11,33 11,35.5 10.5,37.5 C 10.5,39 9.5,40 8,40 C 6.5,40 5.5,39 6,40 Z"
+        fill="currentColor"
       />
-      <rect x={-bodyW / 2} y={bodyTopY} width={bodyW} height={bodyH} rx={bodyH / 2} />
-      <rect
-        x={-bodyW / 2 + bodyW * 0.12}
-        y={groundY - legH}
-        width={legW}
-        height={legH}
-        rx={legW * 0.35}
-      />
-      <rect
-        x={bodyW / 2 - bodyW * 0.16 - legW}
-        y={groundY - legH}
-        width={legW}
-        height={legH}
-        rx={legW * 0.35}
-      />
-      <circle cx={headCX} cy={headCY} r={headR} />
-      <path d={earLeft} />
-      <path d={earRight} />
+      <path d={earTip} fill="currentColor" />
     </g>
   );
 }
 
-// ── Persoane (variante compuse din FigurePictogram) ──────────────────────
-const PersonGraphic = () => <FigurePictogram height={72} />;
+// ── Persoane (siluete Open Peeps, scalate via PeepFigure) ────────────────
+const PersonGraphic = () => (
+  <PeepFigure height={72} Component={StandingPersonA} />
+);
 
 const PersonAtDeskGraphic = () => (
   <g>
     <Desk height={54} />
-    <FigurePictogram height={54} variant="seated" />
+    <PeepFigure height={54} Component={SittingPerson} />
   </g>
 );
 
-// Cuplu — două siluete alăturate, reper de scară pentru cadre de nuntă.
+// Cuplu — două siluete alăturate (variante diferite de păr, aceeași
+// bibliotecă), reper de scară pentru cadre de nuntă.
 const BrideAndGroom = () => (
   <g>
     <g transform="translate(-15 0)">
-      <FigurePictogram height={72} />
+      <PeepFigure height={72} Component={StandingPersonB} />
     </g>
     <g transform="translate(15 0)">
-      <FigurePictogram height={72} />
+      <PeepFigure height={72} Component={StandingPersonA} />
     </g>
   </g>
 );
@@ -162,28 +126,29 @@ const BrideAndGroom = () => (
 const GroupOfPeople = () => (
   <g>
     <g transform="translate(-24 3) scale(0.82)">
-      <FigurePictogram height={72} />
+      <PeepFigure height={72} Component={StandingPersonB} />
     </g>
     <g transform="translate(-8 0) scale(1)">
-      <FigurePictogram height={72} />
+      <PeepFigure height={72} Component={StandingPersonA} />
     </g>
     <g transform="translate(9 1) scale(0.94)">
-      <FigurePictogram height={72} />
+      <PeepFigure height={72} Component={StandingPersonB} />
     </g>
     <g transform="translate(24 4) scale(0.8)">
-      <FigurePictogram height={72} />
+      <PeepFigure height={72} Component={StandingPersonA} />
     </g>
   </g>
 );
 
-// Cuplu în mișcare (dans) — două siluete ușor rotite, în oglindă.
+// Cuplu în mișcare — poză de mers (Open Peeps "Walking"), în oglindă, ca
+// să sugereze dinamism real, nu doar o rotire a poziției statice.
 const Dancers = () => (
   <g>
-    <g transform="translate(-10 2) rotate(-8)">
-      <FigurePictogram height={72} />
+    <g transform="translate(-10 2)">
+      <PeepFigure height={72} Component={WalkingPerson} />
     </g>
-    <g transform="translate(10 2) scale(-1 1) rotate(-8)">
-      <FigurePictogram height={72} />
+    <g transform="translate(10 2) scale(-1 1)">
+      <PeepFigure height={72} Component={WalkingPerson} />
     </g>
   </g>
 );
@@ -192,7 +157,7 @@ const Dancers = () => (
 const GuestAtTable = () => (
   <g>
     <g transform="translate(-10 10) scale(0.85)">
-      <FigurePictogram height={60} variant="seated" />
+      <PeepFigure height={60} Component={SittingPerson} />
     </g>
     <g className="cls-1" transform="translate(8 30)">
       {/* blat de masă */}
