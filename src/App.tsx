@@ -49,6 +49,7 @@ import { buildNativeSelectStyles } from "./selectStyles";
 
 import PhotographyGraphic, { SUBJECTS } from "./PhotographyGraphic";
 import InfluencersPanel from "./components/InfluencersPanel";
+import LensRing from "./components/LensRing";
 import ComparisonTable from "./components/ComparisonTable";
 import PracticalTip from "./components/PracticalTip";
 import { useInfluencers } from "./hooks/useInfluencers";
@@ -1514,6 +1515,19 @@ const cropFactor = isCustomSensor
 
         {/* Aperture */}
         <Box pt={6}>
+          <Flex justify="center" mb={3}>
+            <LensRing
+              label={captureMode === "Video" ? t("diafragmaVideo") : t("diafragma")}
+              value={aperture}
+              onChange={setAperture}
+              min={0.8}
+              max={22}
+              scale="log"
+              marks={[0.8, 1.4, 1.8, 2.8, 4, 5.6, 8, 11, 16, 22]}
+              formatMark={(v) => String(v)}
+              formatCenter={(v) => `f/${v.toFixed(v < 4 ? 1 : 0)}`}
+            />
+          </Flex>
           <Flex gap={2} align="center">
             <Flex w="20%" justify="flex-end" align="center" gap={1.5}>
               <Icon as={TbAperture} boxSize={4} color={mutedText} />
