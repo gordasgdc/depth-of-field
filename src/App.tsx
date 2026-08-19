@@ -242,17 +242,24 @@ const PHOTO_QUICK_SCENARIOS: QuickScenario[] = [
     icon: TbMountain,
     colorScheme: "green",
     aperture: 11,
+    // Distanta = hiperfocala reala pentru 24mm f/11 pe Full Frame (~1.83m),
+    // ca sa demonstreze tehnica corecta (focus la hiperfocala = maxim de la
+    // jumatatea distantei pana la infinit clar), nu o distanta arbitrara.
     focalLength: 24,
-    distanceInMeters: 10,
+    distanceInMeters: 1.83,
     sensor: "Full Frame (35mm)",
   },
   {
     name: "Nuntă - inele",
     icon: FiHeart,
     colorScheme: "pink",
-    aperture: 4,
-    focalLength: 50,
-    distanceInMeters: 5,
+    // Macro real: un inel are ~2cm diametru, la 5m cu 50mm ar fi un punct
+    // invizibil in cadru. 100mm (focala tipica macro) la ~35cm de distanta,
+    // f/8 pentru profunzime rezonabila (la distante macro DOF e oricum sub
+    // 1cm, chiar si inchis).
+    aperture: 8,
+    focalLength: 100,
+    distanceInMeters: 0.35,
     sensor: "Full Frame (35mm)",
   },
   {
@@ -282,18 +289,20 @@ const VIDEO_QUICK_SCENARIOS: QuickScenario[] = [
     name: "B-roll Peisaj",
     icon: TbMountain,
     colorScheme: "green",
+    // Hiperfocala reala pentru 24mm f/8 pe Full Frame (~2.5m).
     aperture: 8,
     focalLength: 24,
-    distanceInMeters: 15,
+    distanceInMeters: 2.5,
     sensor: "Full Frame (35mm)",
   },
   {
     name: "Nuntă - filmare inele",
     icon: FiHeart,
     colorScheme: "pink",
-    aperture: 4,
-    focalLength: 50,
-    distanceInMeters: 5,
+    // Aceeasi corectie ca la preset-ul foto — macro real, nu 5m.
+    aperture: 8,
+    focalLength: 100,
+    distanceInMeters: 0.35,
     sensor: "Full Frame (35mm)",
   },
   {
