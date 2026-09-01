@@ -1,0 +1,51 @@
+name: Deploy to gordas.dev
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout depth-of-field
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Checkout gdc-plugin-manager
+        uses: actions/checkout@v4
+        with:
+          repository: gordasgdc/gdc-plugin-manager
+          token: ${{ secrets.DEPLOY_TOKEN }}
+          path: gdc-plugin-manager
+
+      - name: Sync build into docs/depth-of-field
+        run: |
+          rm -rf gdc-plugin-manager/docs/depth-of-field
+          mkdir -p gdc-plugin-manager/docs/depth-of-field
+          cp -r dist/* gdc-plugin-manager/docs/depth-of-field/
+
+      - name: Commit and push
+        working-directory: gdc-plugin-manager
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add docs/depth-of-field
+          if git diff --cached --quiet; then
+            echo "No changes to deploy."
+            exit 0
+          fi
+          git commit -m "Auto-deploy depth-of-field (${{ github.sha }})"
+          git push
